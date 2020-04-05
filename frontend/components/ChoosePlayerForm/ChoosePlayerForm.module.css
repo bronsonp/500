@@ -1,0 +1,14 @@
+.choosePlayer {
+   margin: 2em 0;
+   padding: 1em 0em;
+}
+
+.buttonHolder {
+    display: flex;
+    flex-direction: column;
+}
+
+.playerButton {
+    margin: 0.5em 0;
+    min-height: 4em;
+}

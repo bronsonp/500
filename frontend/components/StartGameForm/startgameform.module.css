@@ -1,0 +1,16 @@
+.team {
+    padding: 0.5em;
+    margin: 0.5em 0;
+}
+
+.team:nth-child(1) {
+    background-color: #E0C9C5;
+}
+
+.team:nth-child(2) {
+    background-color: #D1DDC3;
+}
+
+.team:nth-child(3) {
+    background-color: #C7C3DB;
+}

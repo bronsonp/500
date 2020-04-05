@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  backend
+
+  Sample SAM Template for backend
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    Environment:
+      Variables:
+        GAMES_TABLE: 500_games
+        CONNECTIONS_TABLE: 500_connections
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+
+Resources:
+  StartGameFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src/
+      Handler: handlers.startGame
+      Runtime: nodejs12.x
+      Events:
+        StartGame:
+          Type: Api 
+          Properties:
+            Path: /start
+            Method: post
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: 500_games
+
+  GetGameInfoFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src/
+      Handler: handlers.getGameInfo
+      Runtime: nodejs12.x
+      Events:
+        StartGame:
+          Type: Api 
+          Properties:
+            Path: /game/{gameID+}
+            Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: 500_games
+
+  OptionsFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src/
+      Handler: handlers.allowCORS
+      Runtime: nodejs12.x
+      Events:
+        Options:
+          Type: Api 
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+
+Outputs:
+  Api:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

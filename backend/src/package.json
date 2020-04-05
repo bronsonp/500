@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend for 500 game",
+  "main": "app.js",
+  "author": "Bronson Philippa",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.653.0",
+    "uuid": "^7.0.3"
+  },
+  "scripts": {},
+  "devDependencies": {
+    "ws": "^7.2.3"
+  }
+}

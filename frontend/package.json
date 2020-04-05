@@ -1,0 +1,25 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "Bronson Philippa",
+  "license": "MIT",
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.3.2",
+    "axios": "^0.19.2",
+    "bootstrap": "^4.4.1",
+    "next": "^9.3.4",
+    "next-images": "^1.4.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-redux": "^7.2.0",
+    "redux": "^4.0.5"
+  }
+}
