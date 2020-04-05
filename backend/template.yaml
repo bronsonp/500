@@ -1,14 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  backend
+  API backend for the game of 500
 
-  Sample SAM Template for backend
-  
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 30
+    MemorySize: 128
     Environment:
       Variables:
         GAMES_TABLE: 500_games
@@ -20,8 +18,8 @@ Globals:
       AllowOrigin: "'*'"
       AllowCredentials: "'*'"
 
-
 Resources:
+  # Functions
   StartGameFunction:
     Type: AWS::Serverless::Function 
     Properties:
@@ -66,8 +64,164 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: OPTIONS
+            
+  # Functions for websockets
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers.onWebsocketConnect
+      Runtime: nodejs12.x
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: 500_connections
+      - DynamoDBCrudPolicy:
+          TableName: 500_games
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - FiveHundredWSAPI
+      - OnConnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnConnectFunction
+      Principal: apigateway.amazonaws.com
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers.onWebsocketDisconnect
+      Runtime: nodejs12.x
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: 500_connections
+      - DynamoDBCrudPolicy:
+          TableName: 500_games
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - FiveHundredWSAPI
+      - OnDisconnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+  OnActionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers.onWebsocketAction
+      Runtime: nodejs12.x
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: 500_connections
+      - DynamoDBCrudPolicy:
+          TableName: 500_games
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FiveHundredWSAPI}/*'
+  OnActionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - FiveHundredWSAPI
+      - OnActionFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnActionFunction
+      Principal: apigateway.amazonaws.com
+
+  # For the websocket API 
+  FiveHundredWSAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: 500WebsocketAPI
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.message"
+
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ConnectInteg
+  ConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  ActionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      RouteKey: action
+      AuthorizationType: NONE
+      OperationName: ActionRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ActionInteg
+  ActionInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+      Description: Player action Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnActionFunction.Arn}/invocations
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+    - ConnectRoute
+    - ActionRoute
+    - DisconnectRoute
+    Properties:
+      ApiId: !Ref FiveHundredWSAPI
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref FiveHundredWSAPI
 
 Outputs:
   Api:
     Description: "API Gateway endpoint URL for Prod stage"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  WebSocketURI:
+    Description: "The WSS Protocol URI to connect to"
+    Value: !Join [ '', [ 'wss://', !Ref FiveHundredWSAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]

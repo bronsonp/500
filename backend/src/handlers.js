@@ -7,27 +7,34 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});
 
-function makeResponse(statusCode, message) {
+function makeCORSheader(event) {
+    // todo 
     return {
-        'statusCode': statusCode,
-        'body': JSON.stringify({
-            'message': message
-        })
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Headers': '*'
     }
 }
 
 exports.allowCORS = async(event, context) => {
     return {
         'statusCode': 200,
-        'headers': {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': '*',
-            'Access-Control-Allow-Headers': '*'
-        }
+        'headers': makeCORSheader(event)
     }
 }
 
 exports.startGame = async (event, context) => {
+
+    function makeResponse(statusCode, message) {
+        return {
+            'statusCode': statusCode,
+            'body': JSON.stringify({
+                'message': message
+            }),
+            'headers': makeCORSheader(event)
+        }
+    }
+
     // Parse input
     var body;
     var response;
@@ -59,11 +66,7 @@ exports.startGame = async (event, context) => {
         return {
             'statusCode': 200,
             'body': JSON.stringify(payload),
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': '*',
-                'Access-Control-Allow-Headers': '*'
-            }
+            'headers': makeCORSheader(event)
         }
     } catch (error) {
         return makeResponse(400, error);
@@ -72,37 +75,30 @@ exports.startGame = async (event, context) => {
 
 exports.getGameInfo = async (event, context) => {
     try {
+        // Get the game record from the database
         const response = await docClient.get({
             TableName: process.env.GAMES_TABLE,
             Key: {'gameID': event.pathParameters.gameID}
         }).promise();
 
+        // Check if it was found in the database
         if (!response.hasOwnProperty('Item')) {
             return {
                 'statusCode': 404,
                 'body': JSON.stringify({
                     'message': 'Invalid gameID'
                 }),
-                'headers': {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': '*',
-                    'Access-Control-Allow-Headers': '*'
-                }
+                'headers': makeCORSheader(event)
             }
         }
 
-        const game = response.Item;
-        
+        // Return the player names
         return {
             'statusCode': 200,
             'body': JSON.stringify({
-                'playerNames': game.playerNames
+                'playerNames': response.Item.playerNames
             }),
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': '*',
-                'Access-Control-Allow-Headers': '*'
-            }
+            'headers': makeCORSheader(event)
         }
     } catch (error) {
         return {
@@ -111,17 +107,12 @@ exports.getGameInfo = async (event, context) => {
                 'message': 'Unable to communicate with server',
                 'response': error
             }),
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': '*',
-                'Access-Control-Allow-Headers': '*'
-            }
+            'headers': makeCORSheader(event)
         }
     }
-
 }
 
-exports.onConnect = async (event) => {
+exports.onWebsocketConnect = async (event) => {
     const putParams = {
       TableName: process.env.CONNECTIONS_TABLE,
       Item: {
@@ -129,14 +120,71 @@ exports.onConnect = async (event) => {
       }
     };
 
-    console.log(event);
-  
-    // try {
-    //   await ddb.put(putParams).promise();
-    // } catch (err) {
-    //   return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
-    // }
+    try {
+      await docClient.put(putParams).promise();
+    } catch (err) {
+        console.log('Failed to store connection: ' + JSON.stringify(err) )
+      return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
+    }
   
     return { statusCode: 200, body: 'Connected.' };
-  };
+};
   
+exports.onWebsocketDisconnect = async (event) => {
+    const deleteParams = {
+        TableName: process.env.CONNECTIONS_TABLE,
+        Key: {
+          connectionId: event.requestContext.connectionId
+        }
+      };
+    
+      try {
+        await docClient.delete(deleteParams).promise();
+      } catch (err) {
+        return { statusCode: 500, body: 'Failed to disconnect: ' + JSON.stringify(err) };
+      }
+    
+      return { statusCode: 200, body: 'Disconnected.' };
+}
+
+exports.onWebsocketAction = async (event) => {
+    let connectionData;
+    
+    try {
+        connectionData = await docClient.scan({ TableName: process.env.CONNECTIONS_TABLE, ProjectionExpression: 'connectionId' }).promise();
+    } catch (e) {
+        console.log('Failed to read database.' + JSON.stringify(e));
+        return { statusCode: 500, body: e.stack };
+    }
+    
+    const apigwManagementApi = new AWS.ApiGatewayManagementApi({
+        apiVersion: '2018-11-29',
+        endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
+    });
+    
+    const postData = JSON.parse(event.body).data;
+    
+    const postCalls = connectionData.Items.map(async ({ connectionId }) => {
+
+        try {
+            await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: postData }).promise();
+        } catch (e) {
+            if (e.statusCode === 410) {
+                console.log(`Found stale connection, deleting ${connectionId}`);
+                await docClient.delete({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }).promise();
+            } else {
+                console.log('Failed to send to connections. ' + JSON.stringify(e));
+                throw e;
+            }
+        }
+    });
+    
+    try {
+        await Promise.all(postCalls);
+    } catch (e) {
+        console.log('Failed to resolve promises.' + JSON.stringify(e));
+        return { statusCode: 500, body: e.stack };
+    }
+    
+    return { statusCode: 200, body: 'Data sent.' };
+};
