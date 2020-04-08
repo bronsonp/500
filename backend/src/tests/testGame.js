@@ -60,10 +60,7 @@ function test_gameplay() {
     assert(!r.accepted, "Cannot shuffle until players are connected.");
 
     // connect all players
-    g.playerConnect(0);
-    g.playerConnect(1);
-    g.playerConnect(2);
-    g.playerConnect(3);
+    g.websockets = ["1", "2", "3", "4"];
 
     // shuffle the cards
     r = g.processPlayerAction(3, {action: Game.Actions.shuffle});
@@ -92,6 +89,19 @@ function test_gameplay() {
     r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1]]});
     assert(!r.accepted, "Should handle invalid discards");
 
+    // Test serialisation 
+    var s = g.toDocument();
+    var g2 = Game.deserialiseGame(s);
+
+    // Check serialisation works
+    Object.keys(g).forEach(k => {
+        if (JSON.stringify(g[k]) != JSON.stringify(g2[k])) {
+            console.log("Serialisation might have failed for " + k);
+            console.log("g:  " + g[k]);
+            console.log("g2: " + g2[k])
+        }
+    })
+    
     // Try a legal discard
     r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1], g.hands[0][2]]});
     assert(r.accepted, "Can discard");

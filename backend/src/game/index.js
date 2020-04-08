@@ -17,10 +17,89 @@ const Actions = {
 
 // Contains the game rules, checks the winner, etc.
 class Game {
+    // Don't call the constructor directory, instead use the factory functions
+    // startGame and deserialiseGame defined below
     constructor(playerNames, serialisation) {
-        this.playerNames = playerNames;
-        this.numberOfPlayers = playerNames.length;
+        // Option 1: called from startGame in which case playerNames are provided
+        if (playerNames != null) {
+            // Set the player names
+            this.playerNames = playerNames;
+            this.numberOfPlayers = playerNames.length;
+
+            // Generate a game ID and timestamps
+            this.gameID = uuid.v4();
+            this.creationTime = Math.round((new Date()).getTime() / 1000);
+            this.expiryTime = this.creationTime + 604800; // number of seconds in a week
+            this.version = 0;
+
+            // Store the websocket connection IDs (or the special flag "-" if there is no connection)
+            this.websockets = this.playerNames.map(n => "-");
+            
+            // Players can vote to discard and redraw (e.g. if something goes wrong)
+            this.playersVoteToRedrawTrick = this.playerNames.map(n => false);
+
+            // The current trick to far
+            this.trick = [];
+            // In a no-trumps game, if the joker is led, must declare which suit it belongs to.
+            this.notrumps_joker_suit = "";
+
+            // The player ID who played each card in the trick
+            this.trickPlayedBy = [];
+
+            // Number of tricks won by each player
+            this.tricksWon = this.playerNames.map(n => 0);
+            
+            // Points won by each player
+            this.pointsWon = this.playerNames.map(n => 0);
+
+            // The current trump suit
+            // Should be one of the keys in all_trumps (e.g. "NT", "H", "D", "C", "S")
+            this.trumps = "";
+            // Number of tricks that have been wagered
+            this.tricksWagered = -1;
+            // ... and by whom?
+            this.playerWinningBid = -1;
+            
+            // No cards have been dealt yet
+            this.hands = [];
+            this.kitty = [];
+
+            // Game state 
+            this.gameState = GameState.BeforeDealing;
+
+            // Whose turn is it?
+            this.turn = -1; 
+
+            // Who will start betting?
+            this.firstBetter = Math.floor(Math.random() * (this.numberOfPlayers));
+        }
+
+        // Option 2: called from deserialiseGame in which case the serialisation parameter is provided
+        else if (serialisation != null) {
+            // Set the core parameters that are stored directly in the database
+            Object.keys(serialisation).forEach(key => {
+                if (key != 'document') {
+                    this[key] = serialisation[key];
+                }
+            })
+
+            // Set the keys stored as string
+            Object.assign(this, JSON.parse(serialisation.document));
+
+            // Set calculated fields
+            this.numberOfPlayers = this.playerNames.length;
+        }
+
+        else {
+            throw Error("Constructor must be called with either playerNames or a serialisation of a previous game.");
+        }
         
+        // Set static data
+        this.setCardData();
+    }
+
+    // Set the deck of cards based upon the number of players
+    setCardData() {
         // Create a list of all the cards in the deck, in order of their worth
         if (this.numberOfPlayers == 4) {
             this.all_cards = [
@@ -94,70 +173,13 @@ class Game {
             },
             ...this.all_suits
         };
-
-        // Are we deserialising?
-        if (serialisation) {
-            Object.assign(this, serialisation);
-        } else {
-            // Set default parameters
-
-            // Generate a game ID and timestamps
-            this.gameID = uuid.v4();
-            this.creationTime = Math.round((new Date()).getTime() / 1000);
-            this.expiryTime = this.creationTime + 604800; // number of seconds in a week
-
-            // Players are initially not connected
-            this.playersConnected = this.playerNames.map(n => false);
-            
-            // Players can vote to discard and redraw (e.g. if something goes wrong)
-            this.playersVoteToRedrawTrick = this.playerNames.map(n => false);
-
-            // The current trick to far
-            this.trick = [];
-            // In a no-trumps game, if the joker is led, must declare which suit it belongs to.
-            this.notrumps_joker_suit = "";
-
-            // The player ID who played each card in the trick
-            this.trickPlayedBy = [];
-
-            // Number of tricks won by each player
-            this.tricksWon = this.playerNames.map(n => 0);
-            
-            // Points won by each player
-            this.pointsWon = this.playerNames.map(n => 0);
-
-            // The current trump suit
-            // Should be one of the keys in all_trumps (e.g. "NT", "H", "D", "C", "S")
-            this.trumps = "";
-            // Number of tricks that have been wagered
-            this.tricksWagered = -1;
-            // ... and by whom?
-            this.playerWinningBid = -1;
-            
-            // No cards have been dealt yet
-            this.hands = [];
-            this.kitty = [];
-
-            // Game state 
-            this.gameState = GameState.BeforeDealing;
-
-            // Whose turn is it?
-            this.turn = -1; 
-
-            // Who will start betting?
-            this.firstBetter = Math.floor(Math.random() * (this.numberOfPlayers));
-        }
     }
 
     // Serialise 
     toDocument() {
         var doc = {};
         var fieldsToSave = [
-            "playerNames", 
-            "gameID", 
-            "creationTime", 
-            "expiryTime",
-            "playersConnected",
+            "playerNames",
             "playersVoteToRedrawTrick",
             "trick",
             "notrumps_joker_suit",
@@ -174,17 +196,14 @@ class Game {
             "firstBetter"
         ];
         fieldsToSave.forEach(f => doc[f] = this[f]);
-        return doc;
-    }
-
-    // Indicate that the given player has connected
-    playerConnect(playerID) {
-        this.playersConnected[playerID] = true;
-    }
-
-    // Indicate that the given player has disconnected
-    playerDisconnect(playerID) {
-        this.playersConnected[playerID] = false;
+        return {
+            gameID: this.gameID,
+            version: this.version,
+            creationTime: this.creationTime,
+            expiryTime: this.expiryTime,
+            websockets: this.websockets,
+            document: JSON.stringify(doc)
+        };
     }
 
     // Process a move taken by a given player
@@ -227,7 +246,7 @@ class Game {
                 case GameState.BeforeDealing: 
                     // Accept the shuffle action once all players are connected
                     if (action.action == Actions.shuffle) {
-                        if (this.playersConnected.every(x => x)) {
+                        if (this.websockets.every(id => id != "-")) {
                             response.accepted = true;
                             this.shuffleCards();
                             return response;
@@ -569,7 +588,7 @@ class Game {
             "action": "gameStatus",
             "payload": {
                 "playerNames": this.playerNames,
-                "playersConnected": this.playersConnected,
+                "playersConnected": this.websockets.map(ws => ws != '-'),
                 "playersVoteToRedrawTrick": this.playersVoteToRedrawTrick,
                 "trick": this.trick,
                 "notrumps_joker_suit": this.notrumps_joker_suit,
@@ -594,7 +613,10 @@ class Game {
 // Set up exports
 exports.Game = Game;
 exports.startGame = function(playerNames) {
-    return new Game(playerNames);
+    return new Game(playerNames, null);
+}
+exports.deserialiseGame = function(serialisation) {
+    return new Game(null, serialisation);
 }
 exports.Actions = Actions;
 
