@@ -219,7 +219,7 @@ class Game {
     // Return:
     //   An object of the following form:
     //   {
-    //       type: "ActionAccepted",
+    //       action: "gameActionResponse",
     //       accepted: true / false,
     //       message: "if the action was rejected, explain why",
     //       log: [{    // entry to be shown in the log of all actions taken in the game, intended to be broadcast to all players. This field is meaningless if accepted=false
@@ -231,7 +231,7 @@ class Game {
     //   If the accepted field of the return value is true, then the game state has been updated.
     processPlayerAction(playerID, action) {
         var response = {
-            "type": "ActionAccepted",
+            "action": "gameActionResponse",
             "message": "",
             "accepted": false,
             "log": [{}]

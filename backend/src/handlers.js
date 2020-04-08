@@ -89,6 +89,9 @@ exports.onWebsocketConnect = async (event) => {
 };
   
 exports.onWebsocketDisconnect = async (event) => {
+    // set the websocket endpoint
+    Database.apigwManagementApi.endpoint = event.requestContext.domainName + '/' + event.requestContext.stage;
+
     // Remove entries from database
     try {
         await Database.unregisterWebsocketToGame(event.requestContext.connectionId);
@@ -135,6 +138,9 @@ exports.onWebsocketAction = async (event) => {
     //     "isBase64Encoded": false
     //   }
 
+    // set the websocket endpoint
+    Database.apigwManagementApi.endpoint = event.requestContext.domainName + '/' + event.requestContext.stage;
+
     let connectionId = event.requestContext.connectionId;
     
     try {
@@ -154,44 +160,39 @@ exports.onWebsocketAction = async (event) => {
             await Database.registerWebsocketToGame(connectionId, body.gameID, body.playerID);
             return { statusCode: 200, body: "OK" };
         }
-        
+
+        // Other actions go to the game engine
+        var gameID = Database.getGameIDFromConnectionId(connectionId);
+        var gameResponse;
+        Database.safeGameUpdate(gameID, game => {
+            // find player ID
+            var playerID = g.websockets.indexOf(connectionId);
+            if (playerID == -1) {
+                gameResponse = {
+                    action: "error",
+                    message: "Request failed: you are not registered to this game."
+                }
+                return { modified: false };
+            }
+
+            // run the game action
+            gameResponse = game.processPlayerAction(plyaerID, body);
+            if (gameResponse.accepted) {
+                return {
+                    modified: true,
+                    log: gameResponse.log
+                }
+            } else {
+                return {
+                    modified: false
+                }
+            }
+        })
+
+        // Respond to the web socket
+        await Database.sendToConnectedWebsocket(event, gameResponse);
+
         return { statusCode: 200, body: "OK" };
-
-        // try {
-        //     connectionData = await docClient.scan({ TableName: process.env.CONNECTIONS_TABLE, ProjectionExpression: 'connectionId' }).promise();
-        // } catch (e) {
-        //     console.log('Failed to read database.' + JSON.stringify(e));
-        //     return { statusCode: 500, body: e.stack };
-        // }
-        
-
-        
-        // // const postData = JSON.parse(event.body).data;
-        // const postData = JSON.stringify(event);
-        
-        // const postCalls = connectionData.Items.map(async ({ connectionId }) => {
-
-        //     try {
-        //         await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: postData }).promise();
-        //     } catch (e) {
-        //         if (e.statusCode === 410) {
-        //             console.log(`Found stale connection, deleting ${connectionId}`);
-        //             await docClient.delete({ TableName: CONNECTIONS_TABLE, Key: { connectionId } }).promise();
-        //         } else {
-        //             console.log('Failed to send to connections. ' + JSON.stringify(e));
-        //             throw e;
-        //         }
-        //     }
-        // });
-        
-        // try {
-        //     await Promise.all(postCalls);
-        // } catch (e) {
-        //     console.log('Failed to resolve promises.' + JSON.stringify(e));
-        //     return { statusCode: 500, body: e.stack };
-        // }
-
-        // return { statusCode: 200, body: 'Data sent.' };
     } catch (error) {
         // Notify the connected client
 

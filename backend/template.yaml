@@ -11,7 +11,6 @@ Globals:
       Variables:
         GAMES_TABLE: 500_games
         CONNECTIONS_TABLE: 500_connections
-        WEBSOCKET_ENDPOINT: !Join [ '', [ !Ref FiveHundredWSAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
   Api:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"

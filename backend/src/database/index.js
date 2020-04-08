@@ -10,8 +10,7 @@ var docClient = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});
 
 // stored in exports so that it can be mocked up in test scripts
 exports.apigwManagementApi = new AWS.ApiGatewayManagementApi({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_ENDPOINT
+    apiVersion: '2018-11-29'
 });
 
 // Load a game from the database
@@ -135,11 +134,11 @@ exports.safeGameUpdate = async function (gameID, updateFunction, broadcastUpdate
 }
 
 exports.sendToConnectedWebsocket = async function (event, payload) {
+    // post the message
     await exports.apigwManagementApi.postToConnection({
         ConnectionId: event.requestContext.connectionId,
         Data: JSON.stringify(payload)
-    })
-    .promise()
+    }).promise()
 }
 
 exports.registerWebsocketToGame = async function (connectionId, gameID, playerID) {
@@ -171,6 +170,21 @@ exports.registerWebsocketToGame = async function (connectionId, gameID, playerID
           gameID: gameID
         }
     }).promise();
+}
+
+exports.getGameIDFromConnectionId = async function (connectionId) {
+    var response = await docClient.get({
+        TableName: process.env.CONNECTIONS_TABLE,
+        Key: {'connectionId': connectionId}
+    }).promise();
+
+    // Check if this connection was found
+    if (!response.hasOwnProperty('Item')) {
+        throw Error("Invalid connectionId");
+    }
+
+    // Else done 
+    return response.Item.gameID;
 }
 
 exports.unregisterWebsocketToGame = async function (connectionId, gameID) {

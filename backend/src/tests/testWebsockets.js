@@ -1,3 +1,5 @@
+const assert = require('assert').strict;
+
 // hardcode
 process.env.AWS_REGION = "ap-southeast-2"
 process.env.GAMES_TABLE = "500_games"
@@ -99,6 +101,10 @@ async function testWebsockets() {
         "playerID": 1
     })
     await handlers.onWebsocketAction(mockEvent);
+
+    // check the registration
+    var returnedGameID = await Database.getGameIDFromConnectionId(mockEvent.requestContext.connectionId);
+    assert(returnedGameID == g.gameID);
 
     // disconnect the first one
     mockEvent.requestContext.connectionId = 'Mock_WS_0';
