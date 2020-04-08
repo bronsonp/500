@@ -13,7 +13,12 @@ function ChoosePlayerForm(props) {
         return (
             <div className={styles.form}>
                 <h2>Who are you?</h2>
-                <p>The following players are registered to take part in this game.</p>
+                {
+                    (props.playerNames.length == 0) ? 
+                    <p>Downloading list of players ...</p> :
+                    <p>The following players are registered to take part in this game.</p>
+                }
+                
                 <div className={styles.buttonHolder}>
                 {
                     props.playerNames.map((name,ID) => (

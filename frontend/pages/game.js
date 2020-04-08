@@ -11,12 +11,12 @@ import axios from "axios";
 
 // Components
 import MainLayout from '../components/Layout';
-import ChoosePlayerForm from '../components/ChoosePlayerForm'
+import ChoosePlayerForm from '../components/ChoosePlayerForm';
+import Game from '../components/Game';
 
 // Internal API
 import { setGameID, setPlayerNames } from "../redux/gameInfoSlice";
 import { getGameInfoURL } from "../api/endpoints";
-
 
 function LinkBack(props) {
     if (props.enabled) {
@@ -104,7 +104,11 @@ class GamePage extends React.Component {
                 <Warning message={this.state.warning} />
                 <LinkBack enabled={this.state.showLinkBack} />
 
-                <ChoosePlayerForm />
+                {
+                    (typeof this.props.playerID == 'undefined') ?
+                    <ChoosePlayerForm /> :
+                    <Game />
+                }
 
             </MainLayout>
         );
@@ -113,7 +117,7 @@ class GamePage extends React.Component {
 
 function mapStateToProps(state) {
     return {
-        
+        playerID: state.gameInfo.playerID
     }
 }
 

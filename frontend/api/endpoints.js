@@ -5,3 +5,5 @@ export function getGameInfoURL(gameID) {
     // return "http://localhost:3001/game/" + gameID;
     return "https://v85fk86gxa.execute-api.ap-southeast-2.amazonaws.com/Prod/game/" + gameID;
 }
+
+export const websocketURL = "wss://st9ayyxbo0.execute-api.ap-southeast-2.amazonaws.com/Prod";
