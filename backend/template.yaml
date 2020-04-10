@@ -77,6 +77,12 @@ Resources:
           TableName: 500_connections
       - DynamoDBCrudPolicy:
           TableName: 500_games
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FiveHundredWSAPI}/*'
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -97,6 +103,12 @@ Resources:
           TableName: 500_connections
       - DynamoDBCrudPolicy:
           TableName: 500_games
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FiveHundredWSAPI}/*'
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:

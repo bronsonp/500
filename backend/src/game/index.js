@@ -585,26 +585,23 @@ class Game {
     // Report game status to players
     getGameStatus(playerID) {
         return {
-            "action": "gameStatus",
-            "payload": {
-                "playerNames": this.playerNames,
-                "playersConnected": this.websockets.map(ws => ws != '-'),
-                "playersVoteToRedrawTrick": this.playersVoteToRedrawTrick,
-                "trick": this.trick,
-                "notrumps_joker_suit": this.notrumps_joker_suit,
-                "trickPlayedBy": this.trickPlayedBy,
-                "tricksWon": this.tricksWon,
-                "pointsWon": this.pointsWon,
-                "trumps": this.trumps,
-                "tricksWagered": this.tricksWagered,
-                "playerWinningBid": this.playerWinningBid,
-                "gameState": this.gameState,
-                "turn": this.turn,
-                "firstBetter": this.firstBetter,
-                
-                "yourHand": this.hands[playerID],
-                "numberOfCardsInHand": this.hands.map(h => h.length),
-            }
+            "playerNames": this.playerNames,
+            "playersConnected": this.websockets.map(ws => ws != '-'),
+            "playersVoteToRedrawTrick": this.playersVoteToRedrawTrick,
+            "trick": this.trick,
+            "notrumps_joker_suit": this.notrumps_joker_suit,
+            "trickPlayedBy": this.trickPlayedBy,
+            "tricksWon": this.tricksWon,
+            "pointsWon": this.pointsWon,
+            "trumps": this.trumps,
+            "tricksWagered": this.tricksWagered,
+            "playerWinningBid": this.playerWinningBid,
+            "gameState": this.gameState,
+            "turn": this.turn,
+            "firstBetter": this.firstBetter,
+            
+            "yourHand": this.hands[playerID],
+            "numberOfCardsInHand": this.hands.map(h => h.length),
         }
     }
 }
@@ -619,4 +616,6 @@ exports.deserialiseGame = function(serialisation) {
     return new Game(null, serialisation);
 }
 exports.Actions = Actions;
+exports.GameState = GameState;
+
 

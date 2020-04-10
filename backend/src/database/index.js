@@ -142,25 +142,79 @@ exports.sendToConnectedWebsocket = async function (event, payload) {
 }
 
 exports.registerWebsocketToGame = async function (connectionId, gameID, playerID) {
-    await exports.safeGameUpdate(gameID, (g) => {
-        // Check that this playerID is not already taken
-        if (g.websockets[playerID] != '-') {
-            // This player is already connected.
-            throw Error('This player is already connected. Simultaneous connections are prohibited.');
+    async function doRegistrationWithChecks(connectionId, gameID, playerID) {
+        // Try game update; will throw if the player is already connected
+
+        await exports.safeGameUpdate(gameID, (g) => {
+            // Check that this connectionId is not already used
+            if (g.websockets.indexOf(connectionId) != -1) {
+                throw Error('You are already registered. Cannot register twice.');
+            }
+
+            // Check that this playerID is not already taken
+            if (g.websockets[playerID] != '-') {
+                // This player is already connected.
+                var e = new Error('This player is already connected. Simultaneous connections are prohibited.')
+                e.name = 'PlayerAlreadyConnectedError';
+                e.otherWebsocket = g.websockets[playerID];
+                throw e;
+            }
+
+            // Register the connection
+            g.websockets[playerID] = connectionId;
+
+            // Commit to database
+            return {
+                modified: true,
+                log: [{
+                    playerID,
+                    action: "connected"
+                }]
+            };
+        })
+    }
+
+    // Do the game update to register the user
+    try {
+        await doRegistrationWithChecks(connectionId, gameID, playerID);
+    } catch (e1) {
+        var otherSocketStillAlive = false;
+        if (e1.name == 'PlayerAlreadyConnectedError') {
+            // Check whether the previous socket is still live
+            try {
+                await exports.apigwManagementApi.postToConnection({
+                    ConnectionId: e1.otherWebsocket,
+                    Data: JSON.stringify({
+                        "action": "keepAlive"
+                    })
+                }).promise()
+
+                // Player is still here
+                otherSocketStillAlive = true;
+            } catch (e2) {
+                if (e2.statusCode === 410) {
+                    // Previous websocket was disconnected
+                    console.log("Removing stale connection: " + e1.otherWebsocket);
+                    
+                    // Delete old socket from connections table 
+                    await exports.unregisterWebsocketToGame(e1.otherWebsocket, gameID);
+
+                    // Try again
+                    await doRegistrationWithChecks(connectionId, gameID, playerID);
+                } else {
+                    // some other error
+                    throw(e2);
+                }
+            }
+
+            if (otherSocketStillAlive) {
+                throw e1;
+            }
+        } else {
+            // some other error, pass it on
+            throw e1;
         }
-
-        // Register the connection
-        g.websockets[playerID] = connectionId;
-
-        // Commit to database
-        return {
-            modified: true,
-            log: [{
-                playerID,
-                action: "connected"
-            }]
-        };
-    });
+    }
 
     // Store in the connections table too
     await docClient.put({
@@ -226,4 +280,11 @@ exports.unregisterWebsocketToGame = async function (connectionId, gameID) {
             }]
         };
     });
+
+    // Delete from connections table 
+    await docClient.delete({
+        TableName: process.env.CONNECTIONS_TABLE,
+        Key: {"connectionId": connectionId}
+    }).promise();
 }
+

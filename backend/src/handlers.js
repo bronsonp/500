@@ -162,11 +162,11 @@ exports.onWebsocketAction = async (event) => {
         }
 
         // Other actions go to the game engine
-        var gameID = Database.getGameIDFromConnectionId(connectionId);
+        var gameID = await Database.getGameIDFromConnectionId(connectionId);
         var gameResponse;
-        Database.safeGameUpdate(gameID, game => {
+        await Database.safeGameUpdate(gameID, game => {
             // find player ID
-            var playerID = g.websockets.indexOf(connectionId);
+            var playerID = game.websockets.indexOf(connectionId);
             if (playerID == -1) {
                 gameResponse = {
                     action: "error",
@@ -176,7 +176,7 @@ exports.onWebsocketAction = async (event) => {
             }
 
             // run the game action
-            gameResponse = game.processPlayerAction(plyaerID, body);
+            gameResponse = game.processPlayerAction(playerID, body);
             if (gameResponse.accepted) {
                 return {
                     modified: true,

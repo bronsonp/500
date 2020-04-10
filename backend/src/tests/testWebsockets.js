@@ -15,16 +15,16 @@ var handlers = require('../handlers');
 Database.apigwManagementApi = {
     statusCode: 200,
     postToConnection: function(x) {
-        var sc = this.statusCode;
         var p = new Promise((resolve, reject) => {
             var {ConnectionId, Data} = x;
-            console.log("Mock websocket: To:`" + ConnectionId + "`");
+            console.log("Mock websocket: To:`" + ConnectionId + "`, returning status code " + this.statusCode);
             console.log(JSON.stringify(Data, null, 2));
 
-            if (sc == 200) {
-                resolve({statusCode: sc});
+            if (this.statusCode == 200) {
+                resolve({statusCode: this.statusCode});
             } else {
-                reject({statusCode: sc});
+                reject({statusCode: this.statusCode});
+                this.statusCode = 200;
             }
         })
         return {
@@ -69,6 +69,9 @@ var mockEvent = {
 
 
 async function testWebsockets() {
+    // try deleting a game that doesn't exist
+    await Database.deleteGame("111111");
+
     // create a game
     var g = Game.startGame(["P1", "P2", "P3", "P4"]);
     await Database.saveGame(g);
@@ -79,6 +82,18 @@ async function testWebsockets() {
     mockEvent.body = "";
     await handlers.onWebsocketConnect(mockEvent);
 
+    // register a game 
+    mockEvent.body = JSON.stringify({
+        "message": "action",
+        "action": "register",
+        "gameID": g.gameID,
+        "playerID": 0
+    })
+    await handlers.onWebsocketAction(mockEvent);
+
+    // try to connect another websocket on the same player ID (while the first one is stale)
+    Database.apigwManagementApi.statusCode = 410
+    mockEvent.requestContext.connectionId = 'Mock_WS_0#1';
     // register a game 
     mockEvent.body = JSON.stringify({
         "message": "action",
@@ -122,6 +137,36 @@ async function testWebsockets() {
     })
     await handlers.onWebsocketAction(mockEvent);
 
+    // disconnect the websockets
+    mockEvent.requestContext.connectionId = 'Mock_WS_0';
+    mockEvent.body = "";
+    await handlers.onWebsocketDisconnect(mockEvent);
+    mockEvent.requestContext.connectionId = 'Mock_WS_1';
+    mockEvent.body = "";
+    await handlers.onWebsocketDisconnect(mockEvent);
+
+
+    // reconnect all websockets
+    var i;
+    for (i = 0; i < 4; i++) {
+        mockEvent.requestContext.connectionId = 'Mock_WS_' + i;
+        mockEvent.body = JSON.stringify({
+            "message": "action",
+            "action": "register",
+            "gameID": g.gameID,
+            "playerID": i
+        })
+        await handlers.onWebsocketAction(mockEvent);
+    }
+    // send a game action
+    mockEvent.requestContext.connectionId = 'Mock_WS_3';
+    mockEvent.body = JSON.stringify({
+        "message": "action",
+        "action": "shuffle"
+    });
+    var response = await handlers.onWebsocketAction(mockEvent);
+    
+    
     // delete it
     await Database.deleteGame(g.gameID);
     console.log("Deleted game");
