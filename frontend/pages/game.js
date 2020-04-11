@@ -15,7 +15,7 @@ import ChoosePlayerForm from '../components/ChoosePlayerForm';
 import Game from '../components/Game';
 
 // Internal API
-import { setGameID, setPlayerNames } from "../redux/gameInfoSlice";
+import { setGameID, setPlayerNames } from "../redux/gameInfo";
 import { getGameInfoURL } from "../api/endpoints";
 
 function LinkBack(props) {
@@ -77,7 +77,6 @@ class GamePage extends React.Component {
             .catch(error => {
                 if (axios.isCancel(error)) {
                     // request was cancelled, do nothing
-                    this.axiosCancelToken = undefined;
                     return;
                 }
                 this.setState({warning: "Cannot find that game: " + error, showLinkBack: true});
@@ -91,23 +90,21 @@ class GamePage extends React.Component {
 
     componentWillUnmount() {
         if (this.axiosCancelToken !== undefined) {
-            this.axiosCancelToken(cancel()); 
+            this.axiosCancelToken.cancel(); 
             this.axiosCancelToken = undefined;
         }
     }
 
     render() {
+        const canShowGame = typeof this.props.playerID !== 'undefined'
+            && typeof this.props.playerNames !== 'undefined';
         return (
             <MainLayout>
-                <h1>A game of 500</h1>
-
                 <Warning message={this.state.warning} />
                 <LinkBack enabled={this.state.showLinkBack} />
 
                 {
-                    (typeof this.props.playerID == 'undefined') ?
-                    <ChoosePlayerForm /> :
-                    <Game />
+                    (canShowGame) ? <Game /> : <ChoosePlayerForm />
                 }
 
             </MainLayout>
@@ -117,7 +114,8 @@ class GamePage extends React.Component {
 
 function mapStateToProps(state) {
     return {
-        playerID: state.gameInfo.playerID
+        playerID: state.gameInfo.playerID,
+        playerNames: state.gameInfo.playerNames
     }
 }
 

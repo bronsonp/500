@@ -12,6 +12,7 @@
   "author": "Bronson Philippa",
   "license": "MIT",
   "dependencies": {
+    "@giantmachines/redux-websocket": "^1.1.7",
     "@reduxjs/toolkit": "^1.3.2",
     "axios": "^0.19.2",
     "bootstrap": "^4.4.1",

@@ -1,8 +1,11 @@
 import { combineReducers } from 'redux';
-import { createReducer } from '@reduxjs/toolkit'
 
-import gameInfoReducer from './gameInfoSlice'
+import gameInfoReducer from './gameInfo'
+import gameStateReducer from './gameState'
+import gameLogReducer from './gameLog'
 
 export default combineReducers({
-  gameInfo: gameInfoReducer
+  gameInfo: gameInfoReducer,
+  gameState: gameStateReducer,
+  gameLog: gameLogReducer,
 })

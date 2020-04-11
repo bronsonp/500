@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 
-import { setPlayerID } from "../../redux/gameInfoSlice";
+import { setPlayerID } from "../../redux/gameInfo";
 
 import styles from "./ChoosePlayerForm.module.css"
 

@@ -5,8 +5,7 @@ const gameInfoSlice = createSlice({
     initialState: {
         gameID: undefined,
         playerID: undefined,
-        playerNames: [],
-        connected: false
+        playerNames: []
     },
     reducers: {
         setGameID: (state, action) => {
@@ -17,9 +16,6 @@ const gameInfoSlice = createSlice({
         },
         setPlayerNames: (state, action) => {
             state.playerNames = action.payload
-        },
-        setConnected: (state, action) => {
-            state.connected = action.payload
         }
     }
 })

@@ -13,6 +13,11 @@ import './global.css'
 // Our store of application state
 import store from '../redux/store.js'
 
+// Connect the websocket 
+import { connect as connectWebsocket } from '@giantmachines/redux-websocket';
+import { websocketURL } from '../api/endpoints';
+store.dispatch(connectWebsocket(websocketURL));
+
 class MyApp extends App {
     render() {
         const { Component, pageProps } = this.props

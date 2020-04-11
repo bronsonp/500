@@ -20,4 +20,22 @@ div.TopLevelFooter {
     text-align: center;
     max-width: 70rem;
 }
-  
+
+@media screen and (max-width: 600px) {
+    div.MainContainer {
+        padding: 1em 0.4em;
+    }
+}
+
+.fadein {
+    animation: showFade ease 0.5s;
+}
+@keyframes showFade {
+    0% {
+        opacity: 0;
+    }
+    
+    100% {
+        opacity: 1;
+    }
+}
