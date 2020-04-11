@@ -15,6 +15,111 @@ const Actions = {
     "playCard": "playCard"
 }
 
+var CardData = {
+    // 4 player data
+    4: {
+        // The cards must be in order of their worth
+        all_cards_H: ["HA", "HK", "HQ", "HJ", "H10", "H9", "H8", "H7", "H6", "H5", "H4"],
+        all_cards_D: ["DA", "DK", "DQ", "DJ", "D10", "D9", "D8", "D7", "D6", "D5", "D4"],
+        all_cards_C: ["CA", "CK", "CQ", "CJ", "C10", "C9", "C8", "C7", "C6", "C5"],
+        all_cards_S: ["SA", "SK", "SQ", "SJ", "S10", "S9", "S8", "S7", "S6", "S5"]
+    },
+    
+    // 6 player data
+    6: {
+        // The cards must be in order of their worth
+        all_cards_H: ["HA", "HK", "HQ", "HJ", "H13", "H12", "H11", "H10", "H9", "H8", "H7", "H6", "H5", "H4", "H3", "H2"],
+        all_cards_D: ["DA", "DK", "DQ", "DJ", "D13", "D12", "D11", "D10", "D9", "D8", "D7", "D6", "D5", "D4", "D3", "D2"],
+        all_cards_C: ["CA", "CK", "CQ", "CJ", "C12", "C11", "C10", "C9", "C8", "C7", "C6", "C5", "C4", "C3", "C2"],
+        all_cards_S: ["SA", "SK", "SQ", "SJ", "S12", "S11", "S10", "S9", "S8", "S7", "S6", "S5", "S4", "S3", "S2"]
+    }
+}
+
+// Set other card data
+for (let [numPlayers, data] of Object.entries(CardData)) {
+    // this list must be in order of worth
+    data.all_cards = [
+        "Joker",
+        ...data.all_cards_H,
+        ...data.all_cards_D,
+        ...data.all_cards_C,
+        ...data.all_cards_S,
+    ];
+
+    // Filter callback for finding distinct objects in an array
+    const distinct = (value, index, self) => self.indexOf(value) === index;
+        
+    // Define the list of suits in the game
+    data.all_suits = {
+        // worth is the score that gets added to the score for the number of tricks
+        // Card order is an ordering scheme that places the joker and the two bowers ahead of other cards.
+        "H": {
+            name: "Hearts",
+            worth: 60,
+            left_bower: "DJ",
+            card_order: ["Joker", "HJ", "DJ", ...data.all_cards_H, ...data.all_cards].filter(distinct)
+        },
+        "D": {
+            name: "Diamonds",
+            worth: 40,
+            left_bower: "HJ",
+            card_order: ["Joker", "DJ", "HJ", ...data.all_cards_D, ...data.all_cards].filter(distinct)
+        },
+        "C": {
+            name: "Clubs",
+            worth: 20,
+            left_bower: "SJ",
+            card_order: ["Joker", "CJ", "SJ", ...data.all_cards_C, ...data.all_cards].filter(distinct)
+        },
+        "S": {
+            name: "Spades",
+            worth: 0,
+            left_bower: "CJ",
+            card_order: ["Joker", "SJ", "CJ", ...data.all_cards_S, ...data.all_cards].filter(distinct)
+        }
+    };
+    
+    // Define the list of trump bids 
+    data.all_trumps = {
+        "NT": {
+            name: "No Trumps",
+            worth: 80,
+            card_order: data.all_cards
+        },
+        ...data.all_suits
+    };
+
+    // Define the list of bids
+    data.all_bids = [{
+        tricksWagered: 0,
+        trumps: 'NT',
+        name: 'Misère',
+        worth: 250
+    }];
+    for (var numtricks = 6; numtricks <= 10; numtricks++) {
+        Object.keys(data.all_trumps).forEach(t => {
+            data.all_bids.push({
+                tricksWagered: numtricks,
+                trumps: t,
+                name: numtricks + " " + data.all_trumps[t].name,
+                worth: 100*(numtricks-6) + data.all_trumps[t].worth + 40
+            })
+        })
+    }
+    data.all_bids.sort((a, b) => {
+        if (a.worth < b.worth) { 
+            return -1;
+        } else if (a.worth > b.worth) { 
+            return 1;
+        } else {
+            return 0;
+        }
+    })
+
+    // Set it back into the global CardData
+    CardData[numPlayers] = data;
+}
+
 // Contains the game rules, checks the winner, etc.
 class Game {
     // Don't call the constructor directory, instead use the factory functions
@@ -53,7 +158,7 @@ class Game {
             this.pointsWon = this.playerNames.map(n => 0);
 
             // The current trump suit
-            // Should be one of the keys in all_trumps (e.g. "NT", "H", "D", "C", "S")
+            // Should be one of the keys in CardData[xx].all_trumps (e.g. "NT", "H", "D", "C", "S")
             this.trumps = "";
             // Number of tricks that have been wagered
             this.tricksWagered = -1;
@@ -93,86 +198,6 @@ class Game {
         else {
             throw Error("Constructor must be called with either playerNames or a serialisation of a previous game.");
         }
-        
-        // Set static data
-        this.setCardData();
-    }
-
-    // Set the deck of cards based upon the number of players
-    setCardData() {
-        // Create a list of all the cards in the deck, in order of their worth
-        if (this.numberOfPlayers == 4) {
-            this.all_cards = [
-                // The cards within each suit must be in order of their worth
-                "Joker",
-                // hearts:
-                "HA", "HK", "HQ", "HJ", "H10", "H9", "H8", "H7", "H6", "H5", "H4",
-                // diamonds:
-                "DA", "DK", "DQ", "DJ", "D10", "D9", "D8", "D7", "D6", "D5", "D4",
-                // clubs:
-                "CA", "CK", "CQ", "CJ", "C10", "C9", "C8", "C7", "C6", "C5",
-                // spades:
-                "SA", "SK", "SQ", "SJ", "S10", "S9", "S8", "S7", "S6", "S5"
-            ];
-        } else if (this.numberOfPlayers == 6) {
-            this.all_cards = [
-                // The cards within each suit must be in order of their worth
-                "Joker",
-                // hearts:
-                "HA", "HK", "HQ", "HJ", "H13", "H12", "H11", "H10", "H9", "H8", "H7", "H6", "H5", "H4", "H3", "H2",
-                // diamonds:
-                "DA", "DK", "DQ", "DJ", "D13", "D12", "D11", "D10", "D9", "D8", "D7", "D6", "D5", "D4", "D3", "D2",
-                // clubs:
-                "CA", "CK", "CQ", "CJ", "C12", "C11", "C10", "C9", "C8", "C7", "C6", "C5", "C4", "C3", "C2",
-                // spades:
-                "SA", "SK", "SQ", "SJ", "S12", "S11", "S10", "S9", "S8", "S7", "S6", "S5", "S4", "S3", "S2"
-            ];
-        } else {
-            throw "Only 4 and 6 player games have been implemented.";
-        }
-        
-        // Filter callback for finding distinct objects in an array
-        const distinct = (value, index, self) => self.indexOf(value) === index;
-        
-        // Define the list of suits in the game
-        this.all_suits = {
-            // worth is the score that gets added to the score for the number of tricks
-            // Card order is an ordering scheme that places the joker and the two bowers ahead of other cards.
-            "H": {
-                name: "Hearts",
-                worth: 60,
-                left_bower: "DJ",
-                card_order: ["Joker", "HJ", "DJ", ...this.all_cards].filter(distinct)
-            },
-            "D": {
-                name: "Diamonds",
-                worth: 40,
-                left_bower: "HJ",
-                card_order: ["Joker", "DJ", "HJ", ...this.all_cards].filter(distinct)
-            },
-            "C": {
-                name: "Clubs",
-                worth: 20,
-                left_bower: "SJ",
-                card_order: ["Joker", "CJ", "SJ", ...this.all_cards].filter(distinct)
-            },
-            "S": {
-                name: "Spades",
-                worth: 0,
-                left_bower: "CJ",
-                card_order: ["Joker", "SJ", "CJ", ...this.all_cards].filter(distinct)
-            }
-        };
-        
-        // Define the list of trump bids 
-        this.all_trumps = {
-            "NT": {
-                name: "No Trumps",
-                worth: 80,
-                card_order: this.all_cards
-            },
-            ...this.all_suits
-        };
     }
 
     // Serialise 
@@ -212,7 +237,7 @@ class Game {
     //   action: an object of two fields: action and payload.
     //   Allowable actions are:
     //   { action: Actions.shuffle } --> shuffle the deck and distribute cards to players.
-    //   { action: Actions.winBet, payload: [8, "H"] } --> notify that this player wins the betting. Bet format is number of tricks then trump suit. The payload can also be the string "misere"
+    //   { action: Actions.winBet, payload: [8, "H"] } --> notify that this player wins the betting. Bet format is number of tricks then trump suit. For "misere", bet format is [0, "NT"]
     //   { action: Actions.discardKitty, payload: [_, _, _] } --> discard 3 cards from the hand.
     //   { action: Actions.playCard, payload: "DJ" } --> play the given card. Note: if the Joker is led in no-trumps, an extra field is added: "notrumps_joker_suit" giving the suit of the joker
     
@@ -271,24 +296,21 @@ class Game {
                         response.accepted = false;
                         response.message = "Invalid bet.";
 
-                        // Special case for misere
-                        if (action.payload == "misere") {
-                            response.accepted = true;
-                            this.trumps = "NT";
-                            this.tricksWagered = 0;
-                        }
-
-                        // Check normal bets
+                        // Parse bet
                         var tricksWagered = parseInt(action.payload[0]);
                         var trumps = action.payload[1];
-                        if (tricksWagered >= 6 && tricksWagered <= 10 && this.all_trumps.hasOwnProperty(trumps)) {
+
+                        // Special case for misere
+                        if (tricksWagered == 0 && trumps == "NT") {
                             response.accepted = true;
-                            this.tricksWagered = tricksWagered;
-                            this.trumps = trumps;
+                        } else if (tricksWagered >= 6 && tricksWagered <= 10 && CardData[this.numberOfPlayers].all_trumps.hasOwnProperty(trumps)) {
+                            response.accepted = true;
                         }
 
                         // Assign the kitty to the player who won the bid
                         if (response.accepted) {
+                            this.tricksWagered = tricksWagered;
+                            this.trumps = trumps;
                             this.playerWinningBid = playerID;
                             this.hands[this.playerWinningBid] = this.hands[this.playerWinningBid].concat(this.kitty);
                             this.kitty = [];
@@ -350,7 +372,7 @@ class Game {
 
                             // Special case for No Trumps when the joker is led
                             if (card == "Joker" && this.trick.length == 0) {
-                                if (action.hasOwnProperty("notrumps_joker_suit") && this.all_suits.hasOwnProperty(action.notrumps_joker_suit)) {
+                                if (action.hasOwnProperty("notrumps_joker_suit") && CardData[this.numberOfPlayers].all_suits.hasOwnProperty(action.notrumps_joker_suit)) {
                                     this.notrumps_joker_suit = action.notrumps_joker_suit;
                                 } else {
                                     response.accepted = false;
@@ -436,7 +458,7 @@ class Game {
 
     // Shuffle the cards and set this.hands and this.kitty 
     shuffleCards() {
-        var cards = this.all_cards.slice();
+        var cards = CardData[this.numberOfPlayers].all_cards.slice();
         
         // shuffle the cards by the Fisher-Yates algorithm
         for (var i = cards.length - 1; i >= 1; i--) {
@@ -481,7 +503,7 @@ class Game {
         
         // Special case for the left bower
         if (this.trumps != "NT") {
-            if (card == this.all_suits[this.trumps].left_bower) {
+            if (card == CardData[this.numberOfPlayers].all_suits[this.trumps].left_bower) {
                 return this.trumps;
             }
         }
@@ -497,7 +519,7 @@ class Game {
     calcTrickWinner(trick, notrumps_led_joker_suit) {
 
         // Sanity check that all cards exist 
-        var card_order = this.all_trumps[this.trumps].card_order;
+        var card_order = CardData[this.numberOfPlayers].all_trumps[this.trumps].card_order;
         trick.forEach(c => {
             if (-1 == card_order.indexOf(c)) {
                 throw "Invalid card `" + c + "` was presented in a trick.";
@@ -617,5 +639,4 @@ exports.deserialiseGame = function(serialisation) {
 }
 exports.Actions = Actions;
 exports.GameState = GameState;
-
-
+exports.CardData = CardData;
