@@ -148,6 +148,16 @@ class Game {
             // In a no-trumps game, if the joker is led, must declare which suit it belongs to.
             this.notrumps_joker_suit = "";
 
+            // The previous trick (so it can continue to be displayed by the user interface long enough for the user to see)
+            this.previousTrick = [];
+            this.previousTrickPlayedBy = [];
+
+            // Who won the previous trick
+            this.previousTrickWonBy = -1;
+
+             // an ID number that increments (for front end to know when a new trick starts)
+            this.trickID = 0;
+
             // The player ID who played each card in the trick
             this.trickPlayedBy = [];
 
@@ -208,6 +218,10 @@ class Game {
             "playersVoteToRedrawTrick",
             "trick",
             "notrumps_joker_suit",
+            "previousTrick",
+            "previousTrickWonBy",
+            "previousTrickPlayedBy",
+            "trickID",
             "trickPlayedBy",
             "tricksWon",
             "pointsWon",
@@ -411,6 +425,12 @@ class Game {
                                     payload: [winningPlayerID, winningCard]
                                 });
 
+                                // Save the previous trick (for the user interface)
+                                this.previousTrick = this.trick;
+                                this.previousTrickPlayedBy = this.trickPlayedBy;
+                                this.previousTrickWonBy = winningPlayerID;
+                                this.trickID += 1;
+
                                 // Clean up
                                 this.notrumps_joker_suit = "";
                                 this.trick = [];
@@ -489,29 +509,6 @@ class Game {
     }
 
 
-    // Calculate the suit of a given card.
-    // Input:
-    //   card: the card to consider
-    //   trumps: which suit is trumps, e.g. "NT", "H", "D", ...
-    // Return value:
-    //   one of "H", "D", "S", "C" corresponding to the suit of the named card
-    getSuit(card) {
-        // Special case for the joker
-        if (card == "Joker") {
-            return this.trumps;
-        }
-        
-        // Special case for the left bower
-        if (this.trumps != "NT") {
-            if (card == CardData[this.numberOfPlayers].all_suits[this.trumps].left_bower) {
-                return this.trumps;
-            }
-        }
-        
-        // Read the suit from the first character in the card name
-        return card[0];
-    }
-
     // Calculate the winner of a trick.
     // Input:
     //   trick: array of all played cards
@@ -568,42 +565,6 @@ class Game {
         return winner;
     }
 
-    // Determine which cards in the hand are legal to play. 
-    // Input: 
-    //   trick_so_far: array of cards that have been played so far
-    //   card: the proposed card
-    //   cards_in_hand: the cards that remain in the player's hand
-    // Returns:
-    //   true if the card is legal to play, otherwise false
-    isCardLegal(trick_so_far, card, cards_in_hand) {
-        // Check if the card is actually in the player's hand
-        if (cards_in_hand.indexOf(card) == -1) {
-            return false;
-        }
-        
-        // Any card is legal if no card has yet been played
-        if (trick_so_far.length == 0) {
-            return true;
-        }
-        
-        // In no trumps, the joker is always legal to play
-        if (this.trumps == "NT" && card == "Joker") {
-            return true;
-        }
-        
-        // If the player can follow suit, then they must
-        var proposed_suit = this.getSuit(card);
-        var leading_suit = this.getSuit(trick_so_far[0]);
-        var suits_in_hand = cards_in_hand.map(c => this.getSuit(c));
-        if (suits_in_hand.indexOf(leading_suit) != -1) {
-            // The player can follow suit
-            return (proposed_suit == leading_suit);
-        } else {
-            // The player can play any card
-            return true;
-        }
-    }
-
     // Report game status to players
     getGameStatus(playerID) {
         return {
@@ -612,6 +573,10 @@ class Game {
             "playersVoteToRedrawTrick": this.playersVoteToRedrawTrick,
             "trick": this.trick,
             "notrumps_joker_suit": this.notrumps_joker_suit,
+            "previousTrick": this.previousTrick,
+            "previousTrickPlayedBy": this.previousTrickPlayedBy,
+            "previousTrickWonBy": this.previousTrickWonBy,
+            "trickID": this.trickID,
             "trickPlayedBy": this.trickPlayedBy,
             "tricksWon": this.tricksWon,
             "pointsWon": this.pointsWon,
@@ -626,6 +591,83 @@ class Game {
             "numberOfCardsInHand": this.hands.map(h => h.length),
         }
     }
+
+    // Wrappers around the static methods below
+    getSuit(card) {
+        return Game.getSuit(card, this.trumps);
+    }
+    isCardLegal(trick_so_far, card, cards_in_hand) {
+        return Game.isCardLegal(trick_so_far, card, cards_in_hand, this.trumps, this.notrumps_joker_suit)
+    }
+    
+    ////////
+    // Static methods below which are shared with the frontend code
+
+    // Calculate the suit of a given card.
+    // Input:
+    //   card: the card to consider
+    //   trumps: which suit is trumps, e.g. "NT", "H", "D", ...
+    // Return value:
+    //   one of "H", "D", "S", "C" corresponding to the suit of the named card
+    static getSuit(card, trumps) {
+        // Special case for the joker
+        if (card == "Joker") {
+            return trumps;
+        }
+        
+        // Special case for the left bower
+        if (trumps != "NT") {
+            // hardcode which CardData to select
+            if (card == CardData['6'].all_suits[trumps].left_bower) {
+                return trumps;
+            }
+        }
+        
+        // Read the suit from the first character in the card name
+        return card[0];
+    }
+
+    // Determine which cards in the hand are legal to play. 
+    // Input: 
+    //   trick_so_far: array of cards that have been played so far
+    //   card: the proposed card
+    //   cards_in_hand: the cards that remain in the player's hand
+    // Returns:
+    //   true if the card is legal to play, otherwise false
+    static isCardLegal(trick_so_far, card, cards_in_hand, trumps, notrumps_joker_suit) {
+        // Check if the card is actually in the player's hand
+        if (cards_in_hand.indexOf(card) == -1) {
+            return false;
+        }
+        
+        // Any card is legal if no card has yet been played
+        if (trick_so_far.length == 0) {
+            return true;
+        }
+        
+        // In no trumps, the joker is always legal to play
+        if (trumps == "NT" && card == "Joker") {
+            return true;
+        }
+        
+        // If the player can follow suit, then they must
+        var proposed_suit = Game.getSuit(card, trumps);
+        var leading_suit;
+        if (trick_so_far[0] == "Joker") {
+            leading_suit = notrumps_joker_suit;
+        } else {
+            leading_suit = Game.getSuit(trick_so_far[0], trumps);
+        }
+        var suits_in_hand = cards_in_hand.map(c => Game.getSuit(c, trumps));
+        if (suits_in_hand.indexOf(leading_suit) != -1) {
+            // The player can follow suit
+            return (proposed_suit == leading_suit);
+        } else {
+            // The player can play any card
+            return true;
+        }
+    }
+
 }
 
 

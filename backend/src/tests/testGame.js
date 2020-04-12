@@ -139,4 +139,5 @@ exports.run_tests = function() {
 }
 
 // for local debugging
+test_calcTrickWinner();
 test_gameplay();
