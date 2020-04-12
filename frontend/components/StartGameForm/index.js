@@ -165,7 +165,7 @@ class StartGameForm extends React.Component {
 
         return (
             <>
-            <h1>Start a new game of 500</h1>
+            <h2>Game details</h2>
             <form className="StartGameForm" onSubmit={e => this.startGameButton(e)}>
                 <DropdownControl 
                 id="numberOfPlayers"
