@@ -21,7 +21,8 @@ function PlayersHand(props) {
     cards = cards.filter(c => {
         return (-1 == props.actionPreview.indexOf(c));
     })
-    
+
+    // sort the cards by worth    
     const trumps = (props.trumps == "" ? "NT" : props.trumps)
     const cardSortOrder = CardData[numberOfPlayers].all_trumps[trumps].card_order;
     cards.sort((a,b) => {
@@ -36,7 +37,14 @@ function PlayersHand(props) {
         }
     })
 
+    // are we allowing actions?
+    var allowCardsToBePlayed = props.turn;
+    if (props.trickIDAcknowledged < props.trickID) {
+        allowCardsToBePlayed = false;
+    }
+
     // render the cards
+    
     return (
         <>
             <h2>Your hand:</h2>
@@ -45,7 +53,7 @@ function PlayersHand(props) {
                 {
                     cards.map((card, id) => {
                         return <Card 
-                            onClick={(card) => {if (props.turn) {props.addCardToPreview(card)}}}
+                            onClick={(card) => {if (allowCardsToBePlayed) {props.addCardToPreview(card)}}}
                             card={card} 
                             key={id} />
                     })
@@ -62,6 +70,8 @@ function mapStateToProps(state) {
         trumps: state.gameState.trumps,
         actionPreview: state.gameState.actionPreview,
         turn: state.gameState.turn == state.gameInfo.playerID,
+        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
+        trickID: state.gameState.trickID,
     }
 }
 

@@ -5,7 +5,7 @@ import { GameState } from '../../../backend/src/game'
 
 import styles from './game.module.css';
 
-function GameStateHeading(props) {   
+function GameStateHeading(props) {
     if (!props.connected) {
         return <h1 className={styles.gameStateHeading}>Connecting to server ...</h1>;
     }
@@ -35,6 +35,10 @@ function GameStateHeading(props) {
     }
     
     if (props.gameState == GameState.Playing) {
+        if (props.trickIDAcknowledged < props.trickID) {
+            return <h1 className={styles.gameStateHeading}>Trick won by {props.playerNames[props.previousTrickWonBy]}</h1>
+        }
+
         if (props.playerID == props.turn) {
              return <h1 className={styles.gameStateHeading}>Your turn</h1>
         } else {
@@ -59,7 +63,10 @@ function mapStateToProps(state) {
         connected: state.gameState.connected,
         turn: state.gameState.turn,
         allPlayersConnected: state.gameState.allPlayersConnected,
-        playerWinningBid: state.gameState.playerWinningBid
+        playerWinningBid: state.gameState.playerWinningBid,
+        trickID: state.gameState.trickID,
+        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
+        previousTrickWonBy: state.gameState.previousTrickWonBy,
     }
 }
 

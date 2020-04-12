@@ -116,17 +116,26 @@ class StartGameForm extends React.Component {
             this.setState({warning: ""});
         }
 
-        // Submit to the server
-        var players = [
-            this.state.player1,
-            this.state.player2,
-            this.state.player3,
-            this.state.player4
-        ];
-        if (this.state.numberOfPlayers == 6) {
-            players.push(this.state.player5);
-            players.push(this.state.player6);
+        // Submit to the server (in different order to get the teams set up)
+        var players;
+        if (this.state.numberOfPlayers == 4) {
+            players = [
+                this.state.player1,
+                this.state.player3,
+                this.state.player2,
+                this.state.player4
+            ];
+        } else {
+            players = [
+                this.state.player1,
+                this.state.player3,
+                this.state.player5,
+                this.state.player2,
+                this.state.player4,
+                this.state.player6,
+            ];
         }
+        
         this.setState({submitted: true});
         axios.post(createGameURL, {
             "players": players

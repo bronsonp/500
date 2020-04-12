@@ -2,18 +2,39 @@ import React from 'react';
 import { connect } from "react-redux";
 
 import sendToServer from '../../redux/sendToServer'
-import { removeCardFromPreview } from '../../redux/gameState'
+import { removeCardFromPreview, acknowledgePreviousTrick } from '../../redux/gameState'
 import { Actions, GameState, CardData, Game as GameEngine } from '../../../backend/src/game'
 
 import styles from './game.module.css';
 
-import Card from './Card'
+import Card, {cardToShortDescription} from './Card'
 
 function ActionPreview(props) {
-    // show nothing if it's not our turn or there's no need to select cards 
-    if (!props.turn && (props.gameState != GameState.DiscardingKitty || props.gameState != GameState.Playing)) {
-        return <div className={styles.actionPreview}></div>;
+    // during bidding, don't take up space
+    if (props.gameState == GameState.Bidding) {
+        return null;
     }
+
+    // if we are reviewing the prevous trick, show some details
+    if (props.trickIDAcknowledged < props.trickID) {
+        var winningCard = props.previousTrick[props.previousTrickPlayedBy.indexOf(props.previousTrickWonBy)];
+
+        return (
+            <div className={styles.actionPreview}>
+                <div className={styles.actionPreviewInstructions}>
+                    <button 
+                        onClick={() => props.acknowledgePreviousTrick()}
+                        className="btn btn-success btn-block fadein">
+                            OK, move on to next trick
+                    </button>
+                </div>
+                <div className={styles.actionPreviewCardContainer}>
+                    {props.playerNames[props.previousTrickWonBy]} won the trick with a {cardToShortDescription(winningCard)}.
+                </div>
+            </div>
+        )
+    }
+
 
     // Give instructions or provide a confirm button
     var instructions = null;
@@ -38,11 +59,21 @@ function ActionPreview(props) {
             instructions = <div className="alert alert-dark">Select a card from your hand to play.</div>
         } else {
             var msg = {action: Actions.playCard, payload: props.actionPreview[0] };
-            confirmation = <button 
-                onClick={() => props.sendToServer(msg)}
-                className="btn btn-success btn-block fadein">
-                    Confirm (play this card)
-            </button>;
+            // is this card legal to play?
+            console.log(props)
+            if (GameEngine.isCardLegal(props.trick, props.actionPreview[0], props.yourHand, props.trumps, props.notrumps_joker_suit)) {
+                confirmation = <button 
+                    onClick={() => props.sendToServer(msg)}
+                    className="btn btn-success btn-block fadein">
+                        Confirm (play this card)
+                    </button>
+            } else {
+                actionPreviewClass = " " + styles.actionPreviewError;
+                confirmation = <button 
+                    className="btn btn-danger btn-block fadein">
+                        Cannot play this card because it is not legal.
+                    </button>
+            }
         }
     }
 
@@ -69,13 +100,23 @@ function ActionPreview(props) {
 function mapStateToProps(state) {
     return {
         gameState: state.gameState.gameState,
+        playerNames: state.gameState.playerNames,
         turn: state.gameState.turn == state.gameInfo.playerID,
         actionPreview: state.gameState.actionPreview,
+        trick: state.gameState.trick,
+        trickID: state.gameState.trickID,
+        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
+        previousTrickWonBy: state.gameState.previousTrickWonBy,
+        previousTrickPlayedBy: state.gameState.previousTrickPlayedBy,
+        previousTrick: state.gameState.previousTrick,
+        yourHand: state.gameState.yourHand,
+        trumps: state.gameState.trumps,
+        notrumps_joker_suit: state.gameState.notrumps_joker_suit,
     }
 }
 
 export default connect(
     mapStateToProps,
-    {removeCardFromPreview, sendToServer}
+    {removeCardFromPreview, acknowledgePreviousTrick, sendToServer}
 )(ActionPreview)
 

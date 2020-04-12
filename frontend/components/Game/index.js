@@ -8,6 +8,7 @@ import { Actions, GameState, CardData, Game as GameEngine } from '../../../backe
 import styles from './game.module.css'
 
 import ActionPanel from './ActionPanel'
+import Bids from './Bids'
 import Card from './Card'
 import CurrentBid from './CurrentBid'
 import GameStateHeading from './GameStateHeading'
@@ -31,56 +32,6 @@ function ShuffleButton(props) {
 }
 
 
-function Bids(props) {
-    if (props.gameState.gameState == GameState.Bidding) {
-        return (
-            <div className={styles.bids}>
-                <div className="alert alert-primary"><strong>{props.gameState.playerNames[props.gameState.firstBetter]}</strong> bids first.</div>
-                <p>
-                    Talk to your friends and decide who wins the bidding.
-                </p>
-                <p>
-                    If you are the winner of the bid, click the appropriate button below to tell the computer. 
-                    You will then receive the cards in the kitty.
-                </p>
-                <table className="table-dark table-bordered table-hovered">
-                    <thead>
-                        <tr>
-                            <th scope="col">Bid</th>
-                            <th scope="col">Points</th>
-                            <th scope="col">I win these</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {
-                        props.gameEngine.all_bids.map((bids, id) => {
-                            const winMessage = {
-                                "action": Actions.winBet,
-                                "payload": [bids.tricksWagered, bids.trumps]
-                            };
-                            return (
-                                <tr key={id}>
-                                    <td>{bids.name}</td>
-                                    <td>{bids.worth}</td>
-                                    <td>
-                                        <button 
-                                            onClick={() => props.sendToServer(winMessage)}
-                                            class="btn btn-block btn-secondary">
-                                                I won the bid of {bids.name}
-                                        </button>
-                                    </td>
-                                </tr> 
-                            );
-                        })
-                    }
-                    </tbody>
-                </table>
-            </div>
-        )
-    } else {
-        return null;
-    }
-}
 
 
 class Game extends React.Component {
@@ -99,10 +50,10 @@ class Game extends React.Component {
                 <GameTable />
                 <ShuffleButton gameState={this.props.gameState} sendToServer={this.props.sendToServer} />
 
-                <Bids gameEngine={this.gameEngine} gameState={this.props.gameState} sendToServer={this.props.sendToServer} />
-
                 <ActionPanel /> 
                 <PlayersHand /> 
+
+                <Bids />
                 
                 <Log />
             </>

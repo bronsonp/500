@@ -6,7 +6,7 @@ import heartsImage from './images/hearts.jpg';
 import diamondsImage from './images/diamonds.jpg';
 import jokerImage from './images/joker.jpg';
 
-function parseCard(card) {
+export function parseCard(card) {
     var suit;
     var value;
     var suitEmoji = "";
@@ -49,6 +49,11 @@ function parseCard(card) {
     }
 }
 
+export function cardToShortDescription(card) {
+    var {value, suitEmoji} = parseCard(card);
+    return value + suitEmoji;
+}
+
 export default function Card(props) {
     var card = parseCard(props.card);
 
@@ -62,7 +67,7 @@ export default function Card(props) {
     return (
         <div 
             onClick={() => props.onClick(props.card)}
-            className={styles.card + " " + styles["card" + card.suit]} >
+            className={styles.card + " " + styles["card" + card.suit] + " " + props.extraStyle} >
                 <span className={styles.helper}></span>
                 <img src={card.image} />
                 <div className={styles.cardText}>{cardText}</div>

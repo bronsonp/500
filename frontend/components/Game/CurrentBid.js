@@ -21,7 +21,7 @@ function CurrentBid(props) {
             bid = props.tricksWagered.toString() + " " + trumps[props.trumps];
         }
         
-        return <div className={styles.currentBid}>{props.playerWinningBid} made a bid of <strong>{bid}</strong>.</div>
+        return <div className={styles.currentBid}>{props.playerWinningBid} won a bid of <strong>{bid}</strong>.</div>
     } else {
         return null;
     }

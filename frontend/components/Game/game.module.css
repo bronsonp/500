@@ -15,27 +15,33 @@
 
 .gameTable {
     display: grid;
-    /* grid-template-columns: 1fr 1fr 1fr 1fr 1fr; */
+    grid-template-columns: 1fr 1fr 1fr;
     justify-content: center;
     align-items: center;
 }
 
 .gameTable div {
-    z-index: 1;
+    /* z-index: 1; */
     margin: 3px 6px;
 }
 
 .gameTable div.gameTableCenter {
-    z-index: 0;
-    background-color: rgb(213, 233, 225);
+    /* z-index: 0; */
+    background: rgb(52,143,106);
+    background: radial-gradient(circle, rgba(52,143,106,1) 0%, rgba(30,116,81,1) 35%, rgba(19,80,55,1) 100%);
+    box-shadow: 4px 5px 5px 0px rgba(0,0,0,0.4), inset 0px 0px 15px 3px rgba(255,255,255,0.2);
     border-radius: 30%;
-    border: 2px solid #aaaaaa;
+    border: 2px solid #707070;
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
     height: 100%;
     margin: 0 0;
+    position: relative;
+    min-width: 12rem;
+    min-height: 14rem;
+    
 }
 
 .activePlayer {
@@ -53,29 +59,29 @@
 }
 
 /* 4 player layout */
-.gameTable4Players div:nth-child(1) {
+.gameTable4Players > div:nth-child(1) {
     grid-column: 2;
     grid-row: 3;
     align-self: center;
     justify-self: center;
 }
-.gameTable4Players div:nth-child(2) {
+.gameTable4Players > div:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
     align-self: center;
-    justify-self: center;
+    justify-self: end;
 }
-.gameTable4Players div:nth-child(3) {
+.gameTable4Players > div:nth-child(3) {
     grid-column: 2;
     grid-row: 1;
     align-self: center;
     justify-self: center;
 }
-.gameTable4Players div:nth-child(4) {
+.gameTable4Players > div:nth-child(4) {
     grid-column: 3;
     grid-row: 2;
     align-self: center;
-    justify-self: center;
+    justify-self: start;
 }
 
 /* center of table */
@@ -155,6 +161,7 @@
     vertical-align: middle;
     box-shadow: 3px 3px 3px 0px rgba(0,0,0,0.33);
 }
+
 .card .helper {
     display: inline-block;
     height: 100%;
@@ -217,6 +224,61 @@
     }
 }
 
+.gameTableCenter .card {
+    max-width: 3.9rem;
+    position: relative;
+}
+
+.gameTableCenter .cardText, .gameTableCenter .cardTextDuplicate {
+    font-size: 1.4rem;
+    line-height: 1.2rem;
+}
+
+.gameTableCenter .card.south {
+    position: absolute;
+    top: 45%;
+    margin-left: 0.6rem;
+}
+
+.gameTableCenter .card.west {
+    position: absolute;
+    right: 50%;
+    margin-top: 0.6rem;
+}
+
+.gameTableCenter .card.north {
+    position: absolute;
+    bottom: 45%;
+    margin-right: 0.6rem;
+}
+
+.gameTableCenter .card.east {
+    position: absolute;
+    left: 56%;
+    margin-bottom: 0.6rem;
+}
+
+.cardZ0 {
+    z-index: 1;
+}
+.cardZ1 {
+    z-index: 2;
+}
+.cardZ2 {
+    z-index: 3;
+}
+.cardZ3 {
+    z-index: 4;
+}
+.cardZ4 {
+    z-index: 5;
+}
+.cardZ5 {
+    z-index: 6;
+}
+
+
+
 
 /* action preview */
 
@@ -224,7 +286,7 @@
     min-height: 10.75rem;
 }
 
-.actionPreviewDiscarding {
+.actionPreviewDiscarding, .actionPreviewError {
     background-color: rgb(223, 212, 212);
 }
 
