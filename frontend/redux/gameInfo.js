@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { CardData } from '../../backend/src/game'
+import { CardData } from '../api/game'
 
 const gameInfoSlice = createSlice({
     name: 'gameInfo',
