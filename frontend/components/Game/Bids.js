@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 import sendToServer from '../../redux/sendToServer'
-import { Actions, GameState, CardData } from '../../../backend/src/game'
+import { Actions, GameState, CardData } from '../../api/game'
 import styles from './game.module.css';
 
 function Bids(props) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from "react-redux";
 
-import { GameState } from '../../../backend/src/game'
+import { GameState } from '../../api/game'
 
 import styles from './game.module.css';
 

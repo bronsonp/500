@@ -1,6 +1,6 @@
 import { connect } from "react-redux"
 import sendToServer from '../../redux/sendToServer'
-import { Actions, GameState } from "../../../backend/src/game";
+import { Actions, GameState } from '../../api/game';
 
 import styles from './game.module.css'
 

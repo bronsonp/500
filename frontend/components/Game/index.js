@@ -1,9 +1,6 @@
 import React from 'react'
 import { connect } from "react-redux"
 
-import sendToServer from '../../redux/sendToServer'
-import { addCardToPreview, removeCardFromPreview } from '../../redux/gameState'
-
 import ActionPanel from './ActionPanel'
 import Bids from './Bids'
 import Card from './Card'

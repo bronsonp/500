@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import styles from './game.module.css';
 
 import Card from './Card'
-import { CardData } from "../../../backend/src/game";
+import { CardData } from '../../api/game';
 
 function wagerToString(tricksWagered, trumps) {
     // find this in the CardData

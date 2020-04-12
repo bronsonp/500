@@ -1,7 +1,7 @@
 import { connect } from "react-redux"
 
 import { addCardToPreview } from '../../redux/gameState'
-import { CardData } from '../../../backend/src/game'
+import { CardData } from '../../api/game'
 
 import styles from './game.module.css'
 
