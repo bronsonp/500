@@ -27,8 +27,8 @@ function TrickHistory(props) {
                 <table className="table table-bordered table-hovered">
                 <thead>
                     <tr>
-                        <td colspan="3"></td>
-                        <th colspan={props.teamScores.length}>Outcome</th>
+                        <td colSpan="3"></td>
+                        <th colSpan={props.teamScores.length}>Outcome</th>
                     </tr>
                     <tr>
                         <th scope="col">Round</th>
@@ -68,8 +68,8 @@ function Scoreboard(props) {
                 <table className="table table-bordered table-hovered">
                     <thead>
                         <tr>
-                            <td colspan="3"></td>
-                            <th colspan={props.teamScores.length}>Scores</th>
+                            <td colSpan="3"></td>
+                            <th colSpan={props.teamScores.length}>Scores</th>
                         </tr>
                         <tr>
                             <th scope="col">Round</th>
