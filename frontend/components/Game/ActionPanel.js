@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import sendToServer from '../../redux/sendToServer'
 import { removeCardFromPreview, acknowledgePreviousTrick } from '../../redux/gameState'
-import { Actions, GameState, CardData, Game as GameEngine } from '../../../backend/src/game'
+import { Actions, GameState, CardData, Game as GameEngine } from '../../api/game'
 
 import styles from './game.module.css';
 
