@@ -15,7 +15,7 @@ import ShuffleButton from './ShuffleButton'
 function Game(props) {
     var error = null;
     if (props.lastError.length > 0) {
-        error = <div class="alert alert-danger" role="alert">{props.lastError}</div>
+        error = <div className="alert alert-danger" role="alert">{props.lastError}</div>
     }
 
     return (
