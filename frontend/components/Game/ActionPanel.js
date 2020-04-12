@@ -12,7 +12,10 @@ import Card, {cardToShortDescription} from './Card'
 function ActionPreview(props) {
     // during bidding, don't take up space
     if (props.gameState == GameState.Bidding) {
-        return null;
+        // .. unless we are still waiting on acknowledgement
+        if (props.trickIDAcknowledged == props.trickID) {
+            return null;
+        }
     }
 
     // if we are reviewing the prevous trick, show some details

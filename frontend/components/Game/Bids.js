@@ -57,7 +57,7 @@ function Bids(props) {
 
 function mapStateToProps(state) {
     return {
-        showBids: state.gameState.gameState == GameState.Bidding,
+        showBids: state.gameState.gameState == GameState.Bidding && (state.gameState.trickIDAcknowledged == state.gameState.trickID) ,
         playerNames: state.gameState.playerNames,
         firstBetter: state.gameState.firstBetter,
     }

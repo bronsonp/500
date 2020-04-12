@@ -1,7 +1,7 @@
 import { connect } from "react-redux"
 
 import { addCardToPreview } from '../../redux/gameState'
-import { CardData } from '../../api/game'
+import { CardData, GameState } from '../../api/game'
 
 import styles from './game.module.css'
 
@@ -9,6 +9,11 @@ import Card from './Card'
 
 function PlayersHand(props) {
     if (typeof props.yourHand == 'undefined') {
+        return null;
+    }
+
+    // did the previous round just finish?
+    if ((props.trickIDAcknowledged < props.trickID) && (props.gameState == GameState.Bidding)) {
         return null;
     }
 
@@ -72,6 +77,7 @@ function mapStateToProps(state) {
         turn: state.gameState.turn == state.gameInfo.playerID,
         trickIDAcknowledged: state.gameState.trickIDAcknowledged,
         trickID: state.gameState.trickID,
+        gameState: state.gameState.gameState,
     }
 }
 

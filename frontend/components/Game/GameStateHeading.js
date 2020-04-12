@@ -9,13 +9,15 @@ function GameStateHeading(props) {
     if (!props.connected) {
         return <h1 className={styles.gameStateHeading}>Connecting to server ...</h1>;
     }
+    
+    // did the previous round just finish?
+    if ((props.trickIDAcknowledged < props.trickID) 
+         && (props.gameState == GameState.BeforeDealing || props.gameState == GameState.Bidding) ) 
+    {
+            return <h1 className={styles.gameStateHeading}>Round finished</h1>;
+    }
 
     if (props.gameState == GameState.BeforeDealing) {
-        // could be because the previous round just finished
-        if (props.trickIDAcknowledged < props.trickID) {
-            return <h1 className={styles.gameStateHeading}>Round finished</h1>;
-        }
-
         if (props.allPlayersConnected) {
             return <h1 className={styles.gameStateHeading}>Ready to deal</h1>;
         } else {
