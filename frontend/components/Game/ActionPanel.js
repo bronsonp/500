@@ -77,7 +77,7 @@ function ActionPreview(props) {
             var msg = {action: Actions.playCard, payload: props.actionPreview[0] };
             // is this card legal to play?
             if (GameEngine.isCardLegal(props.trick, props.actionPreview[0], props.yourHand, props.trumps, props.notrumps_joker_suit)) {
-                if (props.trumps == "NT" && props.actionPreview[0] == "Joker") {
+                if (props.trumps == "NT" && props.actionPreview[0] == "Joker" && props.trick.length == 0) {
                     notrumps_joker_suit_select = 
                         <div className={styles.jokerSuitSelector}>
                             <div>Select the suit that others must follow:</div>
