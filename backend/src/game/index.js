@@ -431,7 +431,7 @@ class Game {
                         if (this.isCardLegal(this.trick, card, this.hands[playerID])) {
 
                             // Special case for No Trumps when the joker is led
-                            if (card == "Joker" && this.trick.length == 0) {
+                            if (card == "Joker" && this.trumps == "NT" && this.trick.length == 0) {
                                 if (action.hasOwnProperty("notrumps_joker_suit") && CardData[this.numberOfPlayers].all_suits.hasOwnProperty(action.notrumps_joker_suit)) {
                                     this.notrumps_joker_suit = action.notrumps_joker_suit;
                                 } else {
