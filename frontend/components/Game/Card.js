@@ -55,6 +55,11 @@ export function cardToShortDescription(card) {
 }
 
 export default function Card(props) {
+    // implement the "#SKIP" card (for misere games)
+    if (props.card == "#SKIP") {
+        return <div></div>
+    }
+
     var card = parseCard(props.card);
 
     var cardText;
