@@ -48,6 +48,10 @@ const wsAPIMiddleware = (store) => (next) => (action) => {
             // Handle each type of message that we expect
             if (data.action == "gameUpdate") {
                 store.dispatch(setGameState(data.gameStatus));
+            } else if (data.action == "gameActionResponse") {
+                if (!data.accepted) {
+                    store.dispatch(setError(data.message));
+                }
             } else if (data.action == "error") {
                 store.dispatch(setError(data.message));
                 // todo, for now just put into the log
