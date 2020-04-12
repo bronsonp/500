@@ -15,9 +15,14 @@ const Actions = {
     "playCard": "playCard"
 }
 
+const MISERE_SCORE = 250;
+
 var CardData = {
     // 4 player data
     4: {
+        // mapping between player ID and team ID
+        teams: {0:0, 1:1, 2:0, 3:1},
+
         // The cards must be in order of their worth
         all_cards_H: ["HA", "HK", "HQ", "HJ", "H10", "H9", "H8", "H7", "H6", "H5", "H4"],
         all_cards_D: ["DA", "DK", "DQ", "DJ", "D10", "D9", "D8", "D7", "D6", "D5", "D4"],
@@ -27,6 +32,9 @@ var CardData = {
     
     // 6 player data
     6: {
+        // mapping between player ID and team ID
+        teams: {0:0, 1:1, 2:2, 3:0, 4:1, 5:2},
+
         // The cards must be in order of their worth
         all_cards_H: ["HA", "HK", "HQ", "HJ", "H13", "H12", "H11", "H10", "H9", "H8", "H7", "H6", "H5", "H4", "H3", "H2"],
         all_cards_D: ["DA", "DK", "DQ", "DJ", "D13", "D12", "D11", "D10", "D9", "D8", "D7", "D6", "D5", "D4", "D3", "D2"],
@@ -94,7 +102,7 @@ for (let [numPlayers, data] of Object.entries(CardData)) {
         tricksWagered: 0,
         trumps: 'NT',
         name: 'Misère',
-        worth: 250
+        worth: MISERE_SCORE
     }];
     for (var numtricks = 6; numtricks <= 10; numtricks++) {
         Object.keys(data.all_trumps).forEach(t => {
@@ -164,8 +172,20 @@ class Game {
             // Number of tricks won by each player
             this.tricksWon = this.playerNames.map(n => 0);
             
-            // Points won by each player
-            this.pointsWon = this.playerNames.map(n => 0);
+            // Scoreboard
+            // This is an array of objects of the form:
+            // [ 
+            //     {
+            //         tricksWagered: __,
+            //         trumps: __,
+            //         playerWinningBid: __,
+            //         tricksWon: [_, _, _, _, _, _], // for each player
+            //         teamScores: [-100, 10, 10] // for each team
+            //      },
+            //      { ... },
+            //     ...
+            // ]
+            this.scoreboard = [];
 
             // The current trump suit
             // Should be one of the keys in CardData[xx].all_trumps (e.g. "NT", "H", "D", "C", "S")
@@ -224,7 +244,7 @@ class Game {
             "trickID",
             "trickPlayedBy",
             "tricksWon",
-            "pointsWon",
+            "scoreboard",
             "trumps",
             "tricksWagered",
             "playerWinningBid",
@@ -244,6 +264,32 @@ class Game {
             document: JSON.stringify(doc)
         };
     }
+
+    // check if the current game is misere
+    isMisere() {
+        return this.tricksWagered == 0 && this.trumps == "NT";
+    }
+    // return the ID of the teammate of the player who bid misere
+    getMisereSkippedPlayer() {
+        if (4 == this.numberOfPlayers) {
+            switch (this.playerWinningBid) {
+                case 0: return 2;
+                case 1: return 3;
+                case 2: return 0;
+                case 3: return 1;
+            }
+        } else {
+            switch (this.playerWinningBid) {
+                case 0: return 3;
+                case 1: return 4;
+                case 2: return 5;
+                case 3: return 0;
+                case 4: return 1;
+                case 5: return 2;
+            }
+        }
+    }
+
 
     // Process a move taken by a given player
     // Input:
@@ -404,51 +450,24 @@ class Game {
                             // Remove it from the player's hand
                             this.hands[playerID] = this.hands[playerID].filter(c => c != card);
 
-                            // Is the trick finished?
-                            if (this.trick.length == this.numberOfPlayers) {
-                                // Trick is done. Find the winner
-
-                                var winningCardID = this.calcTrickWinner(this.trick, this.notrumps_joker_suit);
-                                var winningCard = this.trick[winningCardID];
-                                var winningPlayerID = this.trickPlayedBy[winningCardID];
-
-                                // Add to the score
-                                this.tricksWon[winningPlayerID] += 1;
-
-                                // The winner plays next
-                                this.turn = winningPlayerID;
-                                
-                                // Add to the log
-                                response.log.push({
-                                    playerID: -1,
-                                    action: "trickWon",
-                                    payload: [winningPlayerID, winningCard]
-                                });
-
-                                // Save the previous trick (for the user interface)
-                                this.previousTrick = this.trick;
-                                this.previousTrickPlayedBy = this.trickPlayedBy;
-                                this.previousTrickWonBy = winningPlayerID;
-                                this.trickID += 1;
-
-                                // Clean up
-                                this.notrumps_joker_suit = "";
-                                this.trick = [];
-                                this.trickPlayedBy = [];
-
-                                // Is the round finished?
-                                if (this.hands[0].length == 0) {
-                                    // All tricks have been played.
-                                    // Add up the totals.
-
-                                    // TODO scoring etc.
-                                    this.gameState = GameState.BeforeDealing;
-                                }
-
-
-                            } else {
+                            if (!this.checkForEndOfTrick()) {
                                 // Trick is not finished. Move to the next player.
                                 this.turn = (this.turn + 1) % this.numberOfPlayers;
+
+                                // Special case for misere
+                                if (this.isMisere()) {
+                                    if (this.turn == this.getMisereSkippedPlayer()) {
+                                        // insert a special skip token
+                                        this.trick.push('#SKIP');
+                                        this.trickPlayedBy.push(this.turn);
+
+                                        // Move to the next player
+                                        this.turn = (this.turn + 1) % this.numberOfPlayers;
+                                    }
+
+                                    // Now the trick might be finished
+                                    this.checkForEndOfTrick();
+                                }
                             }
 
                             // Done
@@ -474,6 +493,95 @@ class Game {
         }    
         
         return response;
+    }
+
+    // Check for whether a trick is ended
+    checkForEndOfTrick() {
+        // Is the trick finished?
+        if (this.trick.length == this.numberOfPlayers) {
+            // Trick is done. Find the winner
+
+            var winningCardID = this.calcTrickWinner(this.trick, this.notrumps_joker_suit);
+            // var winningCard = this.trick[winningCardID];
+            var winningPlayerID = this.trickPlayedBy[winningCardID];
+
+            // Add to the score
+            this.tricksWon[winningPlayerID] += 1;
+
+            // The winner plays next
+            this.turn = winningPlayerID;
+            
+            // Save the previous trick (for the user interface)
+            this.previousTrick = this.trick;
+            this.previousTrickPlayedBy = this.trickPlayedBy;
+            this.previousTrickWonBy = winningPlayerID;
+            this.trickID += 1;
+
+            // Clean up
+            this.notrumps_joker_suit = "";
+            this.trick = [];
+            this.trickPlayedBy = [];
+
+            // Is the round finished?
+            if (this.hands[this.playerWinningBid].length == 0) {
+                // All tricks have been played.
+
+                // Add up the total points for winning tricks
+                var teamScores = (this.numberOfPlayers == 4) ? [0,0] : [0,0,0];
+                var teamWinningBid = CardData[this.numberOfPlayers].teams[this.playerWinningBid];
+                // Special case for misere
+                if (this.tricksWagered == 0 && this.trumps == "NT") {
+                    // Did the player bidding misere win any tricks?
+                    if (this.tricksWon[this.playerWinningBid] == 0) {
+                        // success
+                        teamScores[teamWinningBid] += MISERE_SCORE;
+                    } else {
+                        // failure
+                        teamScores[teamWinningBid] -= MISERE_SCORE;
+                    }
+                } else {
+                    // for normal bids, get 10 points per trick (except for the team who wagered)
+                    var tricksWonByWageringTeam = 0;
+                    this.tricksWon.forEach((tricks, playerID) => {
+                        var teamID = CardData[this.numberOfPlayers].teams[playerID];
+                        if (teamID != teamWinningBid) {
+                            teamScores[teamID] += 10*tricks;
+                        } else {
+                            tricksWonByWageringTeam += tricks;
+                        }
+                    })
+
+                    // How many points were at stake?
+                    var pointsAtStake = 100*(this.tricksWagered-6) + CardData[this.numberOfPlayers].all_trumps[this.trumps].worth + 40
+
+                    // Did the players succeed?
+                    if (tricksWonByWageringTeam >= this.tricksWagered) {
+                        // yes, they get the points
+                        teamScores[teamWinningBid] += pointsAtStake;
+                    } else {
+                        // no, they failed
+                        teamScores[teamWinningBid] -= pointsAtStake;
+                    }
+                }
+                
+                // add to the scoreboard
+                this.scoreboard.push({
+                    tricksWagered: this.tricksWagered,
+                    trumps: this.trumps,
+                    playerWinningBid: this.playerWinningBid,
+                    tricksWon: this.tricksWon,
+                    teamScores: teamScores
+                })
+                
+                
+                // done, round is finished
+                this.gameState = GameState.BeforeDealing;
+            }
+            return true;
+        } else {
+            // Trick is not finished
+            return false;
+        }
     }
 
     // Shuffle the cards and set this.hands and this.kitty 
@@ -509,52 +617,54 @@ class Game {
     }
 
 
-    // Calculate the winner of a trick.
-    // Input:
-    //   trick: array of all played cards
-    //   notrumps_led_joker_suit: in the case of no trumps, when the joker is led, it must be declared which suit it belongs to
-    calcTrickWinner(trick, notrumps_led_joker_suit) {
-
+    // Calculate the winner of the current trick
+    calcTrickWinner() {
         // Sanity check that all cards exist 
         var card_order = CardData[this.numberOfPlayers].all_trumps[this.trumps].card_order;
-        trick.forEach(c => {
+        this.trick.forEach((c,i) => {
             if (-1 == card_order.indexOf(c)) {
-                throw "Invalid card `" + c + "` was presented in a trick.";
+                // accept "#SKIP" tokens for misere games
+                if (!(this.isMisere() 
+                      && this.getMisereSkippedPlayer() == this.trickPlayedBy[i] 
+                      && c == "#SKIP")) 
+                {
+                    throw "Invalid card `" + c + "` was presented in a trick.";
+                }
             }
         })
 
         // Find the leading suit
-        var leading_suit = this.getSuit(trick[0]);
+        var leading_suit = this.getSuit(this.trick[0]);
 
         // Special case for a leading joker
-        if (trick[0] == "Joker" && this.trumps == "NT") {
-            leading_suit = notrumps_led_joker_suit;
+        if (this.trick[0] == "Joker" && this.trumps == "NT") {
+            leading_suit = this.notrumps_joker_suit;
         }
         
         // Process each card, looking for a winner
         // The first character of each card name is its suit
         var winner = 0; 
-        var previous_suit = this.getSuit(trick[winner]);
-        for (var i = 1; i < trick.length; i++) {
+        var previous_suit = this.getSuit(this.trick[winner]);
+        for (var i = 1; i < this.trick.length; i++) {
             // Special case for the joker
-            if (trick[i] == "Joker") {
+            if (this.trick[i] == "Joker") {
                 // This card wins if it's the joker 
                 winner = i;
                 break;
             }
             
             // Find the suit of this card
-            var this_suit = this.getSuit(trick[i]);
+            var this_suit = this.getSuit(this.trick[i]);
             
             // Check which card wins:
             
             if (this_suit == this.trumps && previous_suit != this.trumps) {
                 // This card trumps the previous card
                 winner = i;
-                previous_suit = this.getSuit(trick[winner]);
+                previous_suit = this.getSuit(this.trick[winner]);
             } else if (this_suit == previous_suit) {
                 // This card is of the same suit as the previous card. We need to check its value.
-                if (card_order.indexOf(trick[i]) < card_order.indexOf(trick[winner])) {
+                if (card_order.indexOf(this.trick[i]) < card_order.indexOf(this.trick[winner])) {
                     // This card is of higher value.
                     winner = i;
                 }
@@ -579,7 +689,7 @@ class Game {
             "trickID": this.trickID,
             "trickPlayedBy": this.trickPlayedBy,
             "tricksWon": this.tricksWon,
-            "pointsWon": this.pointsWon,
+            "scoreboard": this.scoreboard,
             "trumps": this.trumps,
             "tricksWagered": this.tricksWagered,
             "playerWinningBid": this.playerWinningBid,

@@ -17,7 +17,8 @@ function test_calcTrickWinner() {
     
         // Set up the trick
         g.trumps = trumps;
-        var apparent_winner = g.calcTrickWinner(trick);
+        g.trick = trick;
+        var apparent_winner = g.calcTrickWinner();
         assert(apparent_winner == winner, 
             "Failed to calculate winner. Trick: [" + trick + "] with trump=" + trumps 
             + ". Calculated winner="+apparent_winner 
@@ -48,6 +49,16 @@ function test_calcTrickWinner() {
     checkTrickWinner(["C6", "CA", "CJ", "C5", "D8", "S3"], "NT", 1);
     checkTrickWinner(["H10", "CA", "CJ", "Joker", "H5", "C5"], "H", 3);
 
+    // Case 7: misere 
+    var g = makeTestGame(4);
+    g.trumps = "NT";
+    g.tricksWagered = 0;
+    g.playerWinningBid = 0;
+    g.trick = ["C6", "C8", "#SKIP", "C5"];
+    g.trickPlayedBy = [0, 1, 2, 3]
+    assert(g.calcTrickWinner() == 1);
+    
+
     console.log("trick_winner() tests passed.");
 }
 
@@ -67,7 +78,7 @@ function test_gameplay() {
     assert(r.accepted, "Should be able to shuffle");
 
     // Decide who wins the bidding
-    r = g.processPlayerAction(0, {action: Game.Actions.winBet, payload: [10, "H"]});
+    r = g.processPlayerAction(0, {action: Game.Actions.winBet, payload: [6, "H"]});
     assert(r.accepted, "Should be able to win betting");
 
     // Check no one else can play now
@@ -114,6 +125,8 @@ function test_gameplay() {
         ["CA", "CQ"],
     ];
     g.turn = 2;
+    g.playerWinningBid = 1;
+    s = g.toDocument();
 
     // Play a hand
     r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
@@ -126,10 +139,34 @@ function test_gameplay() {
     r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
     r = g.processPlayerAction(3, {action: Game.Actions.playCard, payload: "CQ"}); assert(r.accepted, "Can play"); 
    
-    
-    console.log(JSON.stringify(r, null, 2));
-    console.log(JSON.stringify(g.toDocument(), null, 2));
-    
+    // check the scoreboard
+    var gs = g.getGameStatus(0);
+    assert(gs.scoreboard[0].teamScores[0] == 20, 'Scoring works');
+    assert(gs.scoreboard[0].teamScores[1] == -100, 'Scoring works');
+
+    // try misere
+    g = Game.deserialiseGame(s);
+    g.trumps = "NT";
+    g.tricksWagered = 0;
+    g.playerWinningBid = 1;
+    g.turn = 2;
+
+    // Play a hand
+    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
+    // player 3 does not play in misere
+    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HA"}); assert(r.accepted, "Can play"); 
+    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DA"}); assert(r.accepted, "Can play"); 
+
+    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
+    // player 3 does not play in misere
+    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HQ"}); assert(r.accepted, "Can play"); 
+    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DQ"}); assert(r.accepted, "Can play"); 
+
+    // check the scoreboard
+    var gs = g.getGameStatus(0);
+    assert(gs.scoreboard[0].teamScores[0] == 0, 'Scoring works');
+    assert(gs.scoreboard[0].teamScores[1] == 250, 'Scoring works');
+        
     console.log("gameplay tests passed.");
 }
 
