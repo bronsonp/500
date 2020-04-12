@@ -365,6 +365,10 @@
     margin-bottom: auto;
 }
 
+.jokerSuitSelector {
+    margin-left: 1rem;
+}
+
 /* scoreboard */
 .scoreboardHeading {
     margin-top: 3rem;

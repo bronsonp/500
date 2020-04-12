@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from "react-redux";
 
-import { GameState } from '../../api/game'
+import { GameState, CardData } from '../../api/game'
 
 import styles from './game.module.css';
 
@@ -67,6 +67,14 @@ function GameTable(props) {
     if (props.gameState == GameState.Bidding) {
         activePlayer = props.firstBetter;
     }
+    
+    // create a message for a joker that is led in a NT game
+    var messageAboutLeadingJoker = null;
+    if (props.trumps == "NT" && cards.length>0 && cards[0] == "Joker" && props.notrumps_joker_suit != '') {
+        var suitName = CardData[6].all_suits[props.notrumps_joker_suit].name;
+        messageAboutLeadingJoker = <div className="alert alert-primary">The leading joker's suit is {suitName}.</div>
+    }
+
 
     return (
         <>
@@ -130,6 +138,8 @@ function GameTable(props) {
                     }
                 </div>
             </div>
+
+            {messageAboutLeadingJoker}
         </>
     )
 }
@@ -152,6 +162,8 @@ function mapStateToProps(state) {
         previousTrick: state.gameState.previousTrick,
         previousTrickPlayedBy: state.gameState.previousTrickPlayedBy,
         previousTrickWonBy: state.gameState.previousTrickWonBy,
+        notrumps_joker_suit: state.gameState.notrumps_joker_suit,
+        trumps: state.gameState.trumps,
     }
 }
 

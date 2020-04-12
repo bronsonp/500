@@ -68,6 +68,7 @@ function ActionPreview(props) {
             </button>;
         }
     }
+    var notrumps_joker_suit_select = null;
     if (props.gameState == GameState.Playing && props.turn) {
         actionPreviewClass = " " + styles.actionPreviewPlaying;
         if (props.actionPreview.length != 1) {
@@ -75,12 +76,27 @@ function ActionPreview(props) {
         } else {
             var msg = {action: Actions.playCard, payload: props.actionPreview[0] };
             // is this card legal to play?
-            console.log(props)
             if (GameEngine.isCardLegal(props.trick, props.actionPreview[0], props.yourHand, props.trumps, props.notrumps_joker_suit)) {
+                if (props.trumps == "NT" && props.actionPreview[0] == "Joker") {
+                    notrumps_joker_suit_select = 
+                        <div className={styles.jokerSuitSelector}>
+                            <div>Select the suit that others must follow:</div>
+                            <select
+                                className="form-control"
+                                onChange={(e) => msg["notrumps_joker_suit"] = e.target.value}>
+                                    <option></option>
+                                    <option value="H">Hearts</option>
+                                    <option value="D">Diamonds</option>
+                                    <option value="S">Spades</option>
+                                    <option value="C">Clubs</option>
+
+                            </select>
+                        </div>
+                }
                 confirmation = <button 
                     onClick={() => props.sendToServer(msg)}
                     className="btn btn-success btn-block fadein">
-                        Confirm (play this card)
+                        Confirm (click here to play this card)
                     </button>
             } else {
                 actionPreviewClass = " " + styles.actionPreviewError;
@@ -108,6 +124,7 @@ function ActionPreview(props) {
                 })
             }
             {extraMessage}
+            {notrumps_joker_suit_select}
             </div>
         </div>
     )
