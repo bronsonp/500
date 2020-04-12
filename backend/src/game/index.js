@@ -763,7 +763,7 @@ class Game {
         // If the player can follow suit, then they must
         var proposed_suit = Game.getSuit(card, trumps);
         var leading_suit;
-        if (trick_so_far[0] == "Joker") {
+        if (trick_so_far[0] == "Joker" && trumps == "NT") {
             leading_suit = notrumps_joker_suit;
         } else {
             leading_suit = Game.getSuit(trick_so_far[0], trumps);
