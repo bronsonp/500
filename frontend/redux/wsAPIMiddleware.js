@@ -1,7 +1,7 @@
 import { send } from '@giantmachines/redux-websocket';
 
 import { addToLog } from './gameLog';
-import { setGameState, setGameDisconnected } from './gameState';
+import { setGameState, setGameDisconnected, setError } from './gameState';
 
 const wsAPIMiddleware = (store) => (next) => (action) => {
     switch(action.type) {
@@ -49,6 +49,7 @@ const wsAPIMiddleware = (store) => (next) => (action) => {
             if (data.action == "gameUpdate") {
                 store.dispatch(setGameState(data.gameStatus));
             } else if (data.action == "error") {
+                store.dispatch(setError(data.message));
                 // todo, for now just put into the log
                 store.dispatch(addToLog([data]));
             } 

@@ -11,6 +11,11 @@ function GameStateHeading(props) {
     }
 
     if (props.gameState == GameState.BeforeDealing) {
+        // could be because the previous round just finished
+        if (props.trickIDAcknowledged < props.trickID) {
+            return <h1 className={styles.gameStateHeading}>Round finished</h1>;
+        }
+
         if (props.allPlayersConnected) {
             return <h1 className={styles.gameStateHeading}>Ready to deal</h1>;
         } else {

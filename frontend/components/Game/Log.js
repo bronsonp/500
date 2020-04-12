@@ -5,8 +5,10 @@ import styles from './game.module.css';
 function Log(props) {
     return (
         <div className={styles.log}>
-            <h4>Game history</h4>
-            <div>Eventually I will make a pretty display of this information, but for now, here are the messages being sent by the server:</div>
+            <h4>Debugging information</h4>
+            <div>Here are the messages from the server (to help me fix it in case something goes wrong)</div>
+            <div>gameState: {JSON.stringify(props.gameState)}</div>
+
             {
                 props.log.map((logEntry, id) => {
                     return <div key={id}>{JSON.stringify(logEntry)}</div>
@@ -20,6 +22,7 @@ function Log(props) {
 function mapStateToProps(state) {
     return {
         log: state.gameLog,
+        gameState: state.gameState,
     }
 }
 

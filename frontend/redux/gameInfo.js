@@ -1,11 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { CardData } from '../../backend/src/game'
 
 const gameInfoSlice = createSlice({
     name: 'gameInfo',
     initialState: {
         gameID: undefined,
         playerID: undefined,
-        playerNames: []
+        playerNames: [],
+        teamNames: [],
     },
     reducers: {
         setGameID: (state, action) => {
@@ -16,6 +18,17 @@ const gameInfoSlice = createSlice({
         },
         setPlayerNames: (state, action) => {
             state.playerNames = action.payload
+
+            state.teamNames = [];
+            for (var teamID = 0; teamID < (state.playerNames.length)/2; teamID++) {
+                var names = [];
+                for (let [p, t] of Object.entries(CardData[state.playerNames.length].teams)) {
+                    if (t == teamID) {
+                        names.push(state.playerNames[p]);
+                    }
+                }
+                state.teamNames.push(names);
+            }
         }
     }
 })

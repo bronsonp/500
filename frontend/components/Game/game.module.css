@@ -25,7 +25,7 @@
     margin: 3px 6px;
 }
 
-.gameTable div.gameTableCenter {
+.gameTable > .gameTableCenter {
     /* z-index: 0; */
     background: rgb(52,143,106);
     background: radial-gradient(circle, rgba(52,143,106,1) 0%, rgba(30,116,81,1) 35%, rgba(19,80,55,1) 100%);
@@ -92,34 +92,47 @@
 
 
 /* 6 player layout */
-.gameTable6Players div:nth-child(1) {
+.gameTable6Players > div:nth-child(1) {
     grid-column: 2;
     grid-row: 4;
+    align-self: center;
+    justify-self: center;
 }
-
-.gameTable6Players div:nth-child(2) {
+.gameTable6Players > div:nth-child(2) {
     grid-column: 1;
     grid-row: 3;
+    align-self: center;
+    justify-self: end;
 }
-
-.gameTable6Players div:nth-child(3) {
+.gameTable6Players > div:nth-child(3) {
     grid-column: 1;
     grid-row: 2;
+    align-self: center;
+    justify-self: end;
 }
-
-.gameTable6Players div:nth-child(4) {
+.gameTable6Players > div:nth-child(4) {
     grid-column: 2;
     grid-row: 1;
+    align-self: center;
+    justify-self: center;
 }
-
-.gameTable6Players div:nth-child(5) {
+.gameTable6Players > div:nth-child(5) {
     grid-column: 3;
     grid-row: 2;
+    align-self: center;
+    justify-self: start;
 }
-
-.gameTable6Players div:nth-child(6) {
+.gameTable6Players > div:nth-child(6) {
     grid-column: 3;
     grid-row: 3;
+    align-self: center;
+    justify-self: start;
+}
+
+.gameTable6Players > .gameTableCenter {
+    grid-row: 2 / span 2;
+    grid-column: 2;
+    min-height: 20rem;
 }
 
 /* gameTablePlayer */
@@ -234,32 +247,75 @@
     line-height: 1.2rem;
 }
 
-.gameTableCenter .card.south {
+/* 4 players card positioning */
+.gameTable4Players .card.south {
     position: absolute;
     top: 45%;
     margin-left: 0.6rem;
 }
 
-.gameTableCenter .card.west {
+.gameTable4Players .card.west {
     position: absolute;
     right: 50%;
     margin-top: 0.6rem;
 }
 
-.gameTableCenter .card.north {
+.gameTable4Players .card.north {
     position: absolute;
     bottom: 45%;
     margin-right: 0.6rem;
 }
 
-.gameTableCenter .card.east {
+.gameTable4Players .card.east {
     position: absolute;
     left: 56%;
     margin-bottom: 0.6rem;
 }
 
+/* 6 players card positioning */
+
+.gameTable6Players .card.south {
+    position: absolute;
+    top: 60%;
+    margin-left: 0.6rem;
+}
+
+.gameTable6Players .card.southwest {
+    position: absolute;
+    top: 48%;
+    right: 54%;
+}
+
+.gameTable6Players .card.northwest {
+    position: absolute;
+    bottom: 48%;
+    right: 58%;
+}
+
+
+.gameTable6Players .card.north {
+    position: absolute;
+    bottom: 60%;
+    margin-right: 0.6rem;
+}
+
+
+.gameTable6Players .card.northeast {
+    position: absolute;
+    left: 54%;
+    bottom: 48%;
+}
+
+.gameTable6Players .card.southeast {
+    position: absolute;
+    left: 58%;
+    top: 48%;
+}
+
+
 .cardZ0 {
     z-index: 1;
+
 }
 .cardZ1 {
     z-index: 2;
@@ -276,7 +332,6 @@
 .cardZ5 {
     z-index: 6;
 }
-
 
 
 
@@ -302,4 +357,15 @@
     display: flex;
     gap: 0.8rem;
     justify-content: center;
+}
+
+.actionPanelExtraMessage {
+    padding: 0 1.5rem; 
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* scoreboard */
+.scoreboardHeading {
+    margin-top: 3rem;
 }

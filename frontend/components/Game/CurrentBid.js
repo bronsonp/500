@@ -20,8 +20,10 @@ function CurrentBid(props) {
         } else {
             bid = props.tricksWagered.toString() + " " + trumps[props.trumps];
         }
+
+        var name_is = props.bidWinnerIsUs ? "You are" : props.playerWinningBid + " is";
         
-        return <div className={styles.currentBid}>{props.playerWinningBid} won a bid of <strong>{bid}</strong>.</div>
+        return <div className={styles.currentBid}>{name_is} trying to win <strong>{bid}</strong>.</div>
     } else {
         return null;
     }
@@ -32,7 +34,8 @@ function mapStateToProps(state) {
         gameState: state.gameState.gameState,
         tricksWagered: state.gameState.tricksWagered,
         trumps: state.gameState.trumps,
-        playerWinningBid: state.gameInfo.playerNames[state.gameState.playerWinningBid]
+        playerWinningBid: state.gameInfo.playerNames[state.gameState.playerWinningBid],
+        bidWinnerIsUs: state.gameInfo.playerID == state.gameState.playerWinningBid
     }
 }
 

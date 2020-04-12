@@ -17,7 +17,21 @@ function ActionPreview(props) {
 
     // if we are reviewing the prevous trick, show some details
     if (props.trickIDAcknowledged < props.trickID) {
+        var leader = props.playerNames[props.previousTrickPlayedBy[0]];
+        var winner = props.playerNames[props.previousTrickWonBy];
         var winningCard = props.previousTrick[props.previousTrickPlayedBy.indexOf(props.previousTrickWonBy)];
+        var message;
+        if (leader == winner) {
+            message = leader + " led and won with " + cardToShortDescription(winningCard) + ".";
+        } else {
+            message = winner + " won with " + cardToShortDescription(winningCard) + ".";
+        }
+        message = "In the last trick, " + message;
+
+        var buttonMessage = "OK, move on to next trick";
+        if (props.gameState == GameState.BeforeDealing) {
+            buttonMessage = "OK, move on to next round";
+        }
 
         return (
             <div className={styles.actionPreview}>
@@ -25,11 +39,11 @@ function ActionPreview(props) {
                     <button 
                         onClick={() => props.acknowledgePreviousTrick()}
                         className="btn btn-success btn-block fadein">
-                            OK, move on to next trick
+                            {buttonMessage}
                     </button>
                 </div>
                 <div className={styles.actionPreviewCardContainer}>
-                    {props.playerNames[props.previousTrickWonBy]} won the trick with a {cardToShortDescription(winningCard)}.
+                    {message}
                 </div>
             </div>
         )
@@ -40,6 +54,7 @@ function ActionPreview(props) {
     var instructions = null;
     var confirmation = null;
     var actionPreviewClass = "";
+    var extraMessage = null;
     if (props.gameState == GameState.DiscardingKitty && props.turn) {
         actionPreviewClass = " " + styles.actionPreviewDiscarding;
         if (props.actionPreview.length != 3) {
@@ -69,6 +84,7 @@ function ActionPreview(props) {
                     </button>
             } else {
                 actionPreviewClass = " " + styles.actionPreviewError;
+                extraMessage = <div className={styles.actionPanelExtraMessage}>Click the card to return it to your hand.</div>
                 confirmation = <button 
                     className="btn btn-danger btn-block fadein">
                         Cannot play this card because it is not legal.
@@ -91,6 +107,7 @@ function ActionPreview(props) {
                     return <Card card={card} key={id} onClick={(card) => props.removeCardFromPreview(card)} />
                 })
             }
+            {extraMessage}
             </div>
         </div>
     )

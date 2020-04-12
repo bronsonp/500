@@ -109,7 +109,14 @@ function GameTable(props) {
                                     case 3: cardStyle = styles.east; break;
                                 }
                             } else {
-                                
+                                switch (tablePosition) {
+                                    case 0: cardStyle = styles.south; break;
+                                    case 1: cardStyle = styles.southwest; break;
+                                    case 2: cardStyle = styles.northwest; break;
+                                    case 3: cardStyle = styles.north; break;
+                                    case 4: cardStyle = styles.northeast; break;
+                                    case 5: cardStyle = styles.southeast; break;
+                                }
                             }
                             // set the z index in order of cards being played
                             cardStyle = cardStyle + " " + styles['cardZ' + i.toString()];

@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { CardData } from '../../backend/src/game';
 
 const gameStateSlice = createSlice({
     name: 'gameState',
@@ -14,6 +15,9 @@ const gameStateSlice = createSlice({
         tricksWon: [],
         previousTrick: [],
         previousTrickPlayedBy: [],
+        lastError: "",
+        scoreboard: [],
+        teamScores: [],
     },
     reducers: {
         setGameState: (state, action) => {
@@ -21,6 +25,9 @@ const gameStateSlice = createSlice({
 
             // if we received this message, we are connected
             state.connected = true;
+
+            // clear any error message
+            state.lastError = "";
             
             // are all players connected?
             state.allPlayersConnected = state.playersConnected.every(x => x);
@@ -40,6 +47,12 @@ const gameStateSlice = createSlice({
                     state.trickIDAcknowledged = state.trickID;
                 }
             }
+
+            // update the scoreboard
+            state.teamScores = (state.playerNames.length == 4) ? [0,0] : [0,0,0];
+            state.scoreboard.forEach(entry => {
+                entry.teamScores.forEach((score, teamID) => state.teamScores[teamID] += score);
+            })
         },
         setGameDisconnected: (state, action) => {
             state.connected = false;
@@ -52,6 +65,9 @@ const gameStateSlice = createSlice({
         },
         acknowledgePreviousTrick: (state, action) => {
             state.trickIDAcknowledged = state.trickID;
+        },
+        setError: (state, action) => {
+            state.lastError = action.payload;
         }
     }
 })
@@ -61,7 +77,8 @@ export const {
     setGameDisconnected,
     addCardToPreview,
     removeCardFromPreview,
-    acknowledgePreviousTrick
+    acknowledgePreviousTrick,
+    setError
 } = gameStateSlice.actions
   
 export default gameStateSlice.reducer
