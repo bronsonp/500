@@ -42,7 +42,7 @@ function Game(props) {
 
 function mapStateToProps(state) {
     return {
-        lastError: state.gameState.lastError,
+        lastError: state.game.lastError,
     }
 }
 

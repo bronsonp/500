@@ -31,11 +31,11 @@ function CurrentBid(props) {
 
 function mapStateToProps(state) {
     return {
-        gameState: state.gameState.gameState,
-        tricksWagered: state.gameState.tricksWagered,
-        trumps: state.gameState.trumps,
-        playerWinningBid: state.gameInfo.playerNames[state.gameState.playerWinningBid],
-        bidWinnerIsUs: state.gameInfo.playerID == state.gameState.playerWinningBid
+        gameState: state.game.serverState.gameState,
+        tricksWagered: state.game.serverState.tricksWagered,
+        trumps: state.game.serverState.trumps,
+        playerWinningBid: state.game.playerNames[state.game.serverState.playerWinningBid],
+        bidWinnerIsUs: state.game.playerID == state.game.serverState.playerWinningBid
     }
 }
 

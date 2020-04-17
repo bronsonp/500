@@ -89,10 +89,10 @@ function Scoreboard(props) {
 
 function mapStateToProps(state) {
     return {
-        scoreboard: state.gameState.scoreboard,
-        teamScores: state.gameState.teamScores,
-        playerNames: state.gameInfo.playerNames,
-        teamNames: state.gameInfo.teamNames,
+        scoreboard: state.game.serverState.scoreboard,
+        teamScores: state.game.teamScores,
+        playerNames: state.game.playerNames,
+        teamNames: state.game.teamNames,
     }
 }
 

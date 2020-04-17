@@ -64,16 +64,16 @@ function GameStateHeading(props) {
 
 function mapStateToProps(state) {
     return {
-        playerID: state.gameInfo.playerID,
-        playerNames: state.gameInfo.playerNames,
-        gameState: state.gameState.gameState,
-        connected: state.gameState.connected,
-        turn: state.gameState.turn,
-        allPlayersConnected: state.gameState.allPlayersConnected,
-        playerWinningBid: state.gameState.playerWinningBid,
-        trickID: state.gameState.trickID,
-        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
-        previousTrickWonBy: state.gameState.previousTrickWonBy,
+        playerID: state.game.playerID,
+        playerNames: state.game.playerNames,
+        gameState: state.game.serverState.gameState,
+        connected: state.game.connected,
+        turn: state.game.serverState.turn,
+        allPlayersConnected: state.game.allPlayersConnected,
+        playerWinningBid: state.game.serverState.playerWinningBid,
+        trickID: state.game.serverState.trickID,
+        trickIDAcknowledged: state.game.trickIDAcknowledged,
+        previousTrickWonBy: state.game.serverState.previousTrickWonBy,
     }
 }
 

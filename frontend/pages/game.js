@@ -15,7 +15,7 @@ import ChoosePlayerForm from '../components/ChoosePlayerForm';
 import Game from '../components/Game';
 
 // Internal API
-import { setGameID, setPlayerNames } from "../redux/gameInfo";
+import { setGameID, setPlayerNames } from "../redux/game";
 import { getGameInfoURL } from "../api/endpoints";
 
 function LinkBack(props) {
@@ -114,8 +114,8 @@ class GamePage extends React.Component {
 
 function mapStateToProps(state) {
     return {
-        playerID: state.gameInfo.playerID,
-        playerNames: state.gameInfo.playerNames
+        playerID: state.game.playerID,
+        playerNames: state.game.playerNames
     }
 }
 

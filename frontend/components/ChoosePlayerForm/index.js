@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 
-import { setPlayerID } from "../../redux/gameInfo";
+import { setPlayerID } from "../../redux/game";
 
 import styles from "./ChoosePlayerForm.module.css"
 
@@ -42,8 +42,8 @@ function ChoosePlayerForm(props) {
 
 function mapStateToProps(state) {
     return {
-        playerID: state.gameInfo.playerID,
-        playerNames: state.gameInfo.playerNames,
+        playerID: state.game.playerID,
+        playerNames: state.game.playerNames,
     }
 }
 

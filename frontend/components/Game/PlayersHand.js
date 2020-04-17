@@ -1,6 +1,6 @@
 import { connect } from "react-redux"
 
-import { addCardToPreview } from '../../redux/gameState'
+import { addCardToPreview } from '../../redux/game'
 import { CardData, GameState } from '../../api/game'
 
 import styles from './game.module.css'
@@ -70,14 +70,14 @@ function PlayersHand(props) {
 
 function mapStateToProps(state) {
     return {
-        playerNames: state.gameInfo.playerNames,
-        yourHand: state.gameState.yourHand,
-        trumps: state.gameState.trumps,
-        actionPreview: state.gameState.actionPreview,
-        turn: state.gameState.turn == state.gameInfo.playerID,
-        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
-        trickID: state.gameState.trickID,
-        gameState: state.gameState.gameState,
+        playerNames: state.game.playerNames,
+        yourHand: state.game.serverState.yourHand,
+        trumps: state.game.serverState.trumps,
+        actionPreview: state.game.actionPreview,
+        turn: state.game.serverState.turn == state.game.playerID,
+        trickIDAcknowledged: state.game.trickIDAcknowledged,
+        trickID: state.game.serverState.trickID,
+        gameState: state.game.serverState.gameState,
     }
 }
 

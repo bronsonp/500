@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from "react-redux";
 
 import sendToServer from '../../redux/sendToServer'
-import { removeCardFromPreview, acknowledgePreviousTrick } from '../../redux/gameState'
+import { removeCardFromPreview, acknowledgePreviousTrick, playCard } from '../../redux/game'
 import { Actions, GameState, CardData, Game as GameEngine } from '../../api/game'
 
 import styles from './game.module.css';
@@ -77,7 +77,7 @@ function ActionPreview(props) {
         if (props.actionPreview.length != 1) {
             instructions = <div className="alert alert-dark">Select a card from your hand to play.</div>
         } else {
-            var msg = {action: Actions.playCard, payload: props.actionPreview[0] };
+            var playCardPayload = {card: props.actionPreview[0] };
             // is this card legal to play?
             if (GameEngine.isCardLegal(props.trick, props.actionPreview[0], props.yourHand, props.trumps, props.notrumps_joker_suit)) {
                 if (props.trumps == "NT" && props.actionPreview[0] == "Joker" && props.trick.length == 0) {
@@ -86,7 +86,7 @@ function ActionPreview(props) {
                             <div>Select the suit that others must follow:</div>
                             <select
                                 className="form-control"
-                                onChange={(e) => msg["notrumps_joker_suit"] = e.target.value}>
+                                onChange={(e) => playCardPayload["notrumps_joker_suit"] = e.target.value}>
                                     <option></option>
                                     <option value="H">Hearts</option>
                                     <option value="D">Diamonds</option>
@@ -97,7 +97,7 @@ function ActionPreview(props) {
                         </div>
                 }
                 confirmation = <button 
-                    onClick={() => props.sendToServer(msg)}
+                    onClick={() => props.playCard(playCardPayload)}
                     className="btn btn-success btn-block fadein">
                         Confirm (click here to play this card)
                     </button>
@@ -136,24 +136,24 @@ function ActionPreview(props) {
 
 function mapStateToProps(state) {
     return {
-        gameState: state.gameState.gameState,
-        playerNames: state.gameState.playerNames,
-        turn: state.gameState.turn == state.gameInfo.playerID,
-        actionPreview: state.gameState.actionPreview,
-        trick: state.gameState.trick,
-        trickID: state.gameState.trickID,
-        trickIDAcknowledged: state.gameState.trickIDAcknowledged,
-        previousTrickWonBy: state.gameState.previousTrickWonBy,
-        previousTrickPlayedBy: state.gameState.previousTrickPlayedBy,
-        previousTrick: state.gameState.previousTrick,
-        yourHand: state.gameState.yourHand,
-        trumps: state.gameState.trumps,
-        notrumps_joker_suit: state.gameState.notrumps_joker_suit,
+        gameState: state.game.serverState.gameState,
+        playerNames: state.game.playerNames,
+        turn: state.game.serverState.turn == state.game.playerID,
+        actionPreview: state.game.actionPreview,
+        trick: state.game.serverState.trick,
+        trickID: state.game.serverState.trickID,
+        trickIDAcknowledged: state.game.trickIDAcknowledged,
+        previousTrickWonBy: state.game.serverState.previousTrickWonBy,
+        previousTrickPlayedBy: state.game.serverState.previousTrickPlayedBy,
+        previousTrick: state.game.serverState.previousTrick,
+        yourHand: state.game.serverState.yourHand,
+        trumps: state.game.serverState.trumps,
+        notrumps_joker_suit: state.game.serverState.notrumps_joker_suit,
     }
 }
 
 export default connect(
     mapStateToProps,
-    {removeCardFromPreview, acknowledgePreviousTrick, sendToServer}
+    {removeCardFromPreview, acknowledgePreviousTrick, sendToServer, playCard}
 )(ActionPreview)
 

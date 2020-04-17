@@ -7,7 +7,6 @@ function Log(props) {
         <div className={styles.log}>
             <h4>Debugging information</h4>
             <div>Here are the messages from the server (to help me fix it in case something goes wrong)</div>
-            <div>gameState: {JSON.stringify(props.gameState)}</div>
 
             {
                 props.log.map((logEntry, id) => {
@@ -22,7 +21,6 @@ function Log(props) {
 function mapStateToProps(state) {
     return {
         log: state.gameLog,
-        gameState: state.gameState,
     }
 }
 

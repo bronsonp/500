@@ -1,23 +1,25 @@
 import { send } from '@giantmachines/redux-websocket';
 
+import sendToServer from './sendToServer'
 import { addToLog } from './gameLog';
-import { setGameState, setGameDisconnected, setError } from './gameState';
+import { setGameState, setGameDisconnected, setError, locallyPlayCard } from './game';
+import { Actions } from '../api/game';
 
 const wsAPIMiddleware = (store) => (next) => (action) => {
     switch(action.type) {
-        case 'gameInfo/setPlayerID':
+        case 'game/setPlayerID':
         case 'REDUX_WEBSOCKET::RECONNECTED':
             // process the action first 
             next(action);
             
             // if we have both a playerID and a gameID, register with the server
             var newState = store.getState();
-            if (typeof newState.gameInfo.playerID != 'undefined' && typeof newState.gameInfo.gameID != 'undefined') {
+            if (typeof newState.game.playerID != 'undefined' && typeof newState.game.gameID != 'undefined') {
                 store.dispatch(send({
                     "message": "action",
                     "action": "register",
-                    "gameID": newState.gameInfo.gameID,
-                    "playerID": newState.gameInfo.playerID
+                    "gameID": newState.game.gameID,
+                    "playerID": newState.game.playerID
                 }))
             }
 
@@ -58,6 +60,17 @@ const wsAPIMiddleware = (store) => (next) => (action) => {
                 store.dispatch(addToLog([data]));
             } 
 
+            break;
+
+        case 'game/playCard':
+            next(action);
+
+            // Send to server
+            store.dispatch(sendToServer({
+                action: Actions.playCard,
+                payload: action.payload.card,
+                notrumps_joker_suit: action.payload.notrumps_joker_suit,
+            }));
             break;
 
         default:

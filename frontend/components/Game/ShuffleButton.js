@@ -20,9 +20,9 @@ function ShuffleButton(props) {
 
 function mapStateToProps(state) {
     return {
-        show: state.gameState.gameState == GameState.BeforeDealing 
-            && state.gameState.allPlayersConnected
-            && (state.gameState.trickIDAcknowledged == state.gameState.trickID)
+        show: state.game.serverState.gameState == GameState.BeforeDealing 
+            && state.game.allPlayersConnected
+            && (state.game.trickIDAcknowledged == state.game.serverState.trickID)
     }
 }
 
