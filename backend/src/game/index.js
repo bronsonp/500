@@ -563,6 +563,12 @@ class Game {
                         teamScores[teamWinningBid] -= pointsAtStake;
                     }
                 }
+
+                // Set tricksWon back to 0
+                this.tricksWon = this.tricksWon.map(x => 0);
+
+                // The next player should bid first in the next round
+                this.firstBetter = (this.firstBetter + 1) % this.numberOfPlayers;
                 
                 // add to the scoreboard
                 this.scoreboard.push({
