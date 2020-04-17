@@ -373,3 +373,13 @@
 .scoreboardHeading {
     margin-top: 3rem;
 }
+
+.historyOfTricks H3 {
+    font-size: 24px;
+    margin-top: 1.5rem;
+}
+
+.historyIcon {
+    min-width: 2.2rem;
+    display: inline-block;
+}

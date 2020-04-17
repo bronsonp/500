@@ -16,92 +16,41 @@ function wagerToString(tricksWagered, trumps) {
     return tricksWagered.toString() + trumps;
 }
 
-function TrickHistory(props) {
-    if (props.scoreboard.length == 0) {
-        return null;
-    } else {
-        return (
-            <>
-                <h2>History of tricks:</h2>
-
-                <table className="table table-bordered table-hovered">
-                <thead>
-                    <tr>
-                        <td colSpan="3"></td>
-                        <th colSpan={props.teamScores.length}>Outcome</th>
-                    </tr>
-                    <tr>
-                        <th scope="col">Round</th>
-                        <th scope="col">Wager</th>
-                        <th scope="col">By</th>
-
-                    </tr>
-                </thead>
-                <tbody>
-                {
-                    props.scoreboard.map((entry, round) => {
-                        return (
-                            <tr key={round}>
-                                <td>{round+1}</td>
-                                <td>{wagerToString(entry.tricksWagered, entry.trumps)}</td>
-                                <td>{props.playerNames[entry.playerWinningBid]}</td>
-                            </tr> 
-                        );
-                    })
-                }
-                </tbody>
-            </table>
-            </>
-        )
-    }
-}
 
 function Scoreboard(props) {
-
-    
     var historyOfTricks = null;
+    var cd = CardData[props.playerNames.length.toString()];
+    var cumulativeScore = props.playerNames.map(x => 0);
+
     if (props.scoreboard.length > 0) {
         historyOfTricks =
             <>
                 <h2>History of tricks:</h2>
 
-                <table className="table table-bordered table-hovered">
-                    <thead>
-                        <tr>
-                            <td colSpan="3"></td>
-                            <th colSpan={props.teamScores.length}>Scores</th>
-                        </tr>
-                        <tr>
-                            <th scope="col">Round</th>
-                            <th scope="col">Wager</th>
-                            <th scope="col">By</th>
-                            {
-                                props.teamNames.map((name, id) => {
-                                    return <th scope="col" key={id}>{name.join(' & ')}</th>
-                                })
-                            }
-
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {
-                        props.scoreboard.map((entry, round) => {
-                            return (
-                                <tr key={round}>
-                                    <td>{round+1}</td>
-                                    <td>{wagerToString(entry.tricksWagered, entry.trumps)}</td>
-                                    <td>{props.playerNames[entry.playerWinningBid]}</td>
-                                    {
-                                        entry.teamScores.map((score, id) => {
-                                            return <td key={id}>{score}</td>
-                                        })
-                                    }
-                                </tr> 
-                            );
-                        })
-                    }
-                    </tbody>
-                </table>
+                {
+                    props.scoreboard.map((entry, round) => {
+                        var teamID = cd.teams[entry.playerWinningBid];
+                        var isWin = entry.teamScores[teamID] > 0;
+                        return (
+                            <div className={styles.historyOfTricks}>
+                                <h3><span className={styles.historyIcon}>{ isWin ? "👌 " : "❌ " }</span>
+                                Round {round+1}: {props.playerNames[entry.playerWinningBid]} wagered {wagerToString(entry.tricksWagered, entry.trumps)}
+                                </h3>
+                                
+                                <ul>
+                                {
+                                    entry.teamScores.map((score, id) => {
+                                        cumulativeScore[id] += score;
+                                        return <li key={id}>
+                                            {props.teamNames[id].join(' and ')}: 
+                                            {score>0 ? " +" : " "}{score} points for a total score of {cumulativeScore[id]}.</li>
+                                    })
+                                }
+                                </ul>
+                            </div>
+                        );
+                    })
+                }
             </>
     }
     

@@ -1,6 +1,11 @@
+import Head from 'next/head'
+
 export default function MainLayout(props) {
     return (
         <>
+            <Head>
+                <title>500</title>
+            </Head>
             <div className="TopLevelContainer">
                 <div className="MainContainer">
                     { props.children }        
