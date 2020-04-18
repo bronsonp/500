@@ -33,7 +33,7 @@ exports.loadGame = async function (gameID) {
 exports.saveGame = async function (game) {
     await docClient.put({
         TableName: process.env.GAMES_TABLE,
-        Item: game.toDocument()
+        Item: Game.serialiseGame(game),
     }).promise();
 }
 
@@ -80,7 +80,7 @@ exports.safeGameUpdate = async function (gameID, updateFunction, broadcastUpdate
         try {
             await docClient.put({
                 TableName: process.env.GAMES_TABLE,
-                Item: g.toDocument(),
+                Item: Game.serialiseGame(g),
                 ConditionExpression: "version = :v",
                 ExpressionAttributeValues:{
                     ":v": oldVersion
@@ -100,7 +100,7 @@ exports.safeGameUpdate = async function (gameID, updateFunction, broadcastUpdate
                                 ConnectionId: connectionId,
                                 Data: JSON.stringify({
                                     "action": "gameUpdate",
-                                    "gameStatus": g.getGameStatus(playerID),
+                                    "gameStatus": Game.getGameInfoForPlayer(g, playerID),
                                     "log": log
                                 })
                             }).promise()

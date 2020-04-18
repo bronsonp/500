@@ -176,7 +176,7 @@ exports.onWebsocketAction = async (event) => {
             }
 
             // run the game action
-            gameResponse = game.processPlayerAction(playerID, body);
+            gameResponse = Game.processPlayerAction(game, playerID, body);
             if (gameResponse.accepted) {
                 return {
                     modified: true,

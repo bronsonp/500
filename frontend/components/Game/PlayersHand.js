@@ -8,7 +8,7 @@ import styles from './game.module.css'
 import Card from './Card'
 
 function PlayersHand(props) {
-    if (typeof props.yourHand == 'undefined') {
+    if (typeof props.hands == 'undefined') {
         return null;
     }
 
@@ -17,10 +17,11 @@ function PlayersHand(props) {
         return null;
     }
 
+    const ourHand = props.hands[props.playerID];
     const numberOfPlayers = props.playerNames.length;
 
     // get the cards in the player's hand
-    var cards = props.yourHand.slice()
+    var cards = ourHand.slice()
 
     // remove any that are shown in the preview area
     cards = cards.filter(c => {
@@ -71,7 +72,8 @@ function PlayersHand(props) {
 function mapStateToProps(state) {
     return {
         playerNames: state.game.playerNames,
-        yourHand: state.game.serverState.yourHand,
+        playerID: state.game.playerID,
+        hands: state.game.serverState.hands,
         trumps: state.game.serverState.trumps,
         actionPreview: state.game.actionPreview,
         turn: state.game.serverState.turn == state.game.playerID,

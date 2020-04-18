@@ -18,7 +18,7 @@ function test_calcTrickWinner() {
         // Set up the trick
         g.trumps = trumps;
         g.trick = trick;
-        var apparent_winner = g.calcTrickWinner();
+        var apparent_winner = Game.calcTrickWinner(g);
         assert(apparent_winner == winner, 
             "Failed to calculate winner. Trick: [" + trick + "] with trump=" + trumps 
             + ". Calculated winner="+apparent_winner 
@@ -56,7 +56,7 @@ function test_calcTrickWinner() {
     g.playerWinningBid = 0;
     g.trick = ["C6", "C8", "#SKIP", "C5"];
     g.trickPlayedBy = [0, 1, 2, 3]
-    assert(g.calcTrickWinner() == 1);
+    assert(Game.calcTrickWinner(g) == 1);
     
 
     console.log("trick_winner() tests passed.");
@@ -67,41 +67,41 @@ function test_gameplay() {
     var r;
 
     // try to shuffle before players connect
-    r = g.processPlayerAction(0, {action: Game.Actions.shuffle});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.shuffle});
     assert(!r.accepted, "Cannot shuffle until players are connected.");
 
     // connect all players
     g.websockets = ["1", "2", "3", "4"];
 
     // shuffle the cards
-    r = g.processPlayerAction(3, {action: Game.Actions.shuffle});
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.shuffle});
     assert(r.accepted, "Should be able to shuffle");
 
     // Decide who wins the bidding
-    r = g.processPlayerAction(0, {action: Game.Actions.winBet, payload: [6, "H"]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.winBet, payload: [6, "H"]});
     assert(r.accepted, "Should be able to win betting");
 
     // Check no one else can play now
-    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: g.hands[1][0]});    
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: g.hands[1][0]});    
     assert(!r.accepted, "Can't play until kitty is discarded");
 
-    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: g.hands[1][0]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.playCard, payload: g.hands[1][0]});
     assert(!r.accepted, "Can't play until kitty is discarded");
 
     // Discard cards you don't have
-    r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[1][0], g.hands[1][1], g.hands[1][2]]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.discardKitty, payload: [g.hands[1][0], g.hands[1][1], g.hands[1][2]]});
     assert(!r.accepted, "Should handle invalid discards");
 
     // Discard two of the same
-    r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1], g.hands[0][1]]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1], g.hands[0][1]]});
     assert(!r.accepted, "Should handle invalid discards");
 
     // Discard less than 3
-    r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1]]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1]]});
     assert(!r.accepted, "Should handle invalid discards");
 
     // Test serialisation 
-    var s = g.toDocument();
+    var s = Game.serialiseGame(g);
     var g2 = Game.deserialiseGame(s);
 
     // Check serialisation works
@@ -114,7 +114,7 @@ function test_gameplay() {
     })
     
     // Try a legal discard
-    r = g.processPlayerAction(0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1], g.hands[0][2]]});
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.discardKitty, payload: [g.hands[0][0], g.hands[0][1], g.hands[0][2]]});
     assert(r.accepted, "Can discard");
 
     // Put the game into a known state
@@ -126,21 +126,21 @@ function test_gameplay() {
     ];
     g.turn = 2;
     g.playerWinningBid = 1;
-    s = g.toDocument();
+    s = Game.serialiseGame(g);
 
     // Play a hand
-    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(3, {action: Game.Actions.playCard, payload: "CA"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HA"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.playCard, payload: "CA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.playCard, payload: "HA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: "DA"}); assert(r.accepted, "Can play"); 
 
-    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HQ"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DQ"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(3, {action: Game.Actions.playCard, payload: "CQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.playCard, payload: "HQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: "DQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.playCard, payload: "CQ"}); assert(r.accepted, "Can play"); 
    
     // check the scoreboard
-    var gs = g.getGameStatus(0);
+    var gs = Game.getGameInfoForPlayer(g, 0);
     assert(gs.scoreboard[0].teamScores[0] == 20, 'Scoring works');
     assert(gs.scoreboard[0].teamScores[1] == -100, 'Scoring works');
 
@@ -152,18 +152,18 @@ function test_gameplay() {
     g.turn = 2;
 
     // Play a hand
-    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.playCard, payload: "SA"}); assert(r.accepted, "Can play"); 
     // player 3 does not play in misere
-    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HA"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.playCard, payload: "HA"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: "DA"}); assert(r.accepted, "Can play"); 
 
-    r = g.processPlayerAction(2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.playCard, payload: "SQ"}); assert(r.accepted, "Can play"); 
     // player 3 does not play in misere
-    r = g.processPlayerAction(0, {action: Game.Actions.playCard, payload: "HQ"}); assert(r.accepted, "Can play"); 
-    r = g.processPlayerAction(1, {action: Game.Actions.playCard, payload: "DQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.playCard, payload: "HQ"}); assert(r.accepted, "Can play"); 
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: "DQ"}); assert(r.accepted, "Can play"); 
 
     // check the scoreboard
-    var gs = g.getGameStatus(0);
+    var gs = Game.getGameInfoForPlayer(g, 0);
     assert(gs.scoreboard[0].teamScores[0] == 0, 'Scoring works');
     assert(gs.scoreboard[0].teamScores[1] == 250, 'Scoring works');
         

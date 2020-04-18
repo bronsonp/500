@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import sendToServer from '../../redux/sendToServer'
 import { removeCardFromPreview, acknowledgePreviousTrick, playCard } from '../../redux/game'
-import { Actions, GameState, CardData, Game as GameEngine } from '../../api/game'
+import { Actions, GameState, CardData, isCardLegal } from '../../api/game'
 
 import styles from './game.module.css';
 
@@ -11,18 +11,21 @@ import Card, {cardToShortDescription} from './Card'
 
 function ActionPreview(props) {
     // during bidding, don't take up space
-    if (props.gameState == GameState.Bidding) {
+    if (props.serverState.gameState == GameState.Bidding) {
         // .. unless we are still waiting on acknowledgement
-        if (props.trickIDAcknowledged == props.trickID) {
+        if (props.trickIDAcknowledged == props.serverState.trickID) {
             return null;
         }
     }
 
+    // is it our turn
+    const isOurTurn = props.serverState.turn == props.playerID;
+
     // if we are reviewing the prevous trick, show some details
-    if (props.trickIDAcknowledged < props.trickID) {
-        var leader = props.playerNames[props.previousTrickPlayedBy[0]];
-        var winner = props.playerNames[props.previousTrickWonBy];
-        var winningCard = props.previousTrick[props.previousTrickPlayedBy.indexOf(props.previousTrickWonBy)];
+    if (props.trickIDAcknowledged < props.serverState.trickID) {
+        var leader = props.playerNames[props.serverState.previousTrickPlayedBy[0]];
+        var winner = props.playerNames[props.serverState.previousTrickWonBy];
+        var winningCard = props.serverState.previousTrick[props.serverState.previousTrickPlayedBy.indexOf(props.serverState.previousTrickWonBy)];
         var message;
         if (leader == winner) {
             message = leader + " led and won with " + cardToShortDescription(winningCard) + ".";
@@ -58,7 +61,7 @@ function ActionPreview(props) {
     var confirmation = null;
     var actionPreviewClass = "";
     var extraMessage = null;
-    if (props.gameState == GameState.DiscardingKitty && props.turn) {
+    if (props.serverState.gameState == GameState.DiscardingKitty && isOurTurn) {
         actionPreviewClass = " " + styles.actionPreviewDiscarding;
         if (props.actionPreview.length != 3) {
             instructions = <div className="alert alert-dark">Select 3 cards from your hand to discard.</div>
@@ -72,15 +75,15 @@ function ActionPreview(props) {
         }
     }
     var notrumps_joker_suit_select = null;
-    if (props.gameState == GameState.Playing && props.turn) {
+    if (props.serverState.gameState == GameState.Playing && isOurTurn) {
         actionPreviewClass = " " + styles.actionPreviewPlaying;
         if (props.actionPreview.length != 1) {
             instructions = <div className="alert alert-dark">Select a card from your hand to play.</div>
         } else {
             var playCardPayload = {card: props.actionPreview[0] };
             // is this card legal to play?
-            if (GameEngine.isCardLegal(props.trick, props.actionPreview[0], props.yourHand, props.trumps, props.notrumps_joker_suit)) {
-                if (props.trumps == "NT" && props.actionPreview[0] == "Joker" && props.trick.length == 0) {
+            if (isCardLegal(props.serverState, props.playerID, props.actionPreview[0])) {
+                if (props.serverState.trumps == "NT" && props.actionPreview[0] == "Joker" && props.serverState.trick.length == 0) {
                     notrumps_joker_suit_select = 
                         <div className={styles.jokerSuitSelector}>
                             <div>Select the suit that others must follow:</div>
@@ -136,19 +139,11 @@ function ActionPreview(props) {
 
 function mapStateToProps(state) {
     return {
-        gameState: state.game.serverState.gameState,
+        serverState: state.game.serverState,
+        playerID: state.game.playerID,
         playerNames: state.game.playerNames,
-        turn: state.game.serverState.turn == state.game.playerID,
         actionPreview: state.game.actionPreview,
-        trick: state.game.serverState.trick,
-        trickID: state.game.serverState.trickID,
         trickIDAcknowledged: state.game.trickIDAcknowledged,
-        previousTrickWonBy: state.game.serverState.previousTrickWonBy,
-        previousTrickPlayedBy: state.game.serverState.previousTrickPlayedBy,
-        previousTrick: state.game.serverState.previousTrick,
-        yourHand: state.game.serverState.yourHand,
-        trumps: state.game.serverState.trumps,
-        notrumps_joker_suit: state.game.serverState.notrumps_joker_suit,
     }
 }
 

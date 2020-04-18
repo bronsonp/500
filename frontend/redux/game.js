@@ -108,13 +108,13 @@ const gameSlice = createSlice({
 
             
 
-            // Add it to the trick
-            state.serverState.trick.push(action.payload.card);
-            state.serverState.trickPlayedBy.push(state.playerID);
+            // // Add it to the trick
+            // state.serverState.trick.push(action.payload.card);
+            // state.serverState.trickPlayedBy.push(state.playerID);
 
-            // Remove it from the player's hand and preview window
-            state.actionPreview = [];
-            state.serverState.yourHand = state.serverState.yourHand.filter(h => h !== action.payload.card);
+            // // Remove it from the player's hand and preview window
+            // state.actionPreview = [];
+            // state.serverState.yourHand = state.serverState.yourHand.filter(h => h !== action.payload.card);
 
 
             state.sendingToServer = true;
