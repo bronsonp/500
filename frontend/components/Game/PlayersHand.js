@@ -8,7 +8,7 @@ import styles from './game.module.css'
 import Card from './Card'
 
 function PlayersHand(props) {
-    if (typeof props.hands == 'undefined') {
+    if (typeof props.hands == 'undefined' || props.hands[props.playerID] == null) {
         return null;
     }
 
