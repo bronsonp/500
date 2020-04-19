@@ -448,6 +448,9 @@ button.shuffleButton {
     padding: 0.75rem 1.25rem;
     margin-bottom: 1rem;
 }
+.actionPreviewInstructions > button {
+    min-height: 3rem;
+}
 
 .actionPreviewCardContainer {
     display: flex;

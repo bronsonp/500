@@ -769,6 +769,8 @@ function checkForEndOfTrick(game) {
 
             // The next player should bid first in the next round
             game.firstBetter = (game.firstBetter + 1) % game.playerNames.length;
+            game.bettingPassed = game.playerNames.map(n => false);
+            game.bettingHistory = [];
             
             // add to the scoreboard
             game.scoreboard.push({

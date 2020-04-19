@@ -96,6 +96,15 @@ class Bids extends React.Component {
         };
     }
 
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        // did a new round of betting start?
+        if (this.props.bettingPassed !== null && prevProps.bettingPassed !== null) {
+            if (prevProps.bettingPassed[this.props.playerID] && !this.props.bettingPassed[this.props.playerID]) {
+                this.setState({bid: null, selectedNumberOfTricks: null});
+            }
+        }
+    }
+
     render() {
         if (!this.props.showBids) {
             return null;
