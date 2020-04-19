@@ -1,57 +1,191 @@
+import React from "react";
 import { connect } from "react-redux";
 import sendToServer from '../../redux/sendToServer'
-import { Actions, GameState, CardData } from '../../api/game'
+import { Actions, GameState, CardData, worthOfBid, betToString } from '../../api/game'
 import styles from './game.module.css';
+import { playerAction } from '../../redux/game'
 
-function Bids(props) {
-    if (props.showBids) {
-        var firstBetter = props.playerNames[props.firstBetter];
+function BidButton(props) {
+    var bidName = betToString(props.bid);
+    var worth = worthOfBid(props.bid);
+    var btnClass = (worth <= props.worthOfLastBid) ? "btn btn-outline-danger" : "btn btn-secondary";
+    return (
+        <>
+            <button
+                onClick={() => props.selectBid(props.bid)}
+                className={btnClass}>Bid {bidName}
+            </button>
+            <span className={styles.bidSelectorPointLabel}>
+                { (worth <= props.worthOfLastBid) 
+                    ? "🚫 only " + worth.toString() + " points; does not outbid previous bid" 
+                    : worth.toString() + " points" 
+                }
+            </span>
+        </>
+    );
+}
+
+function BidSelector(props) {
+
+    if (props.bid != null) {
         return (
-            <div className={styles.bids}>
-                <div className="alert alert-primary"><strong>{firstBetter}</strong> bids first.</div>
-                <p>
-                    Talk to your friends and decide who wins the bidding.
-                </p>
-                <p>
-                    If you are the winner of the bid, click the appropriate button below to tell the computer. 
-                    You will then receive the cards in the kitty.
-                </p>
-                <table className="table-dark table-bordered table-hovered">
-                    <thead>
-                        <tr>
-                            <th scope="col">Bid</th>
-                            <th scope="col">Points</th>
-                            <th scope="col">I win these</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div className={styles.bidSelectorContainer}>
+                <button 
+                    className="btn btn-secondary" 
+                    onClick={() => props.selectBid(null)}>
+                        No, I changed my mind. I want to make a different bid. 
+                </button>
+            </div>
+        )
+    } else if (props.selectedNumberOfTricks == null) {
+        var misereBet = [0, "NT"];
+        return (
+            <div className={styles.bidSelectorContainer}>
+                <div className={styles.bidSelectorButtonContainer}>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => props.selectBid([])}>
+                            I want to pass
+                    </button>
+                    <span> </span>
                     {
-                        CardData[props.playerNames.length].all_bids.map((bids, id) => {
-                            const winMessage = {
-                                "action": Actions.winBet,
-                                "payload": [bids.tricksWagered, bids.trumps]
-                            };
+                        [6, 7, 8, 9, 10].map(numTricks => {
                             return (
-                                <tr key={id}>
-                                    <td>{bids.name}</td>
-                                    <td>{bids.worth}</td>
-                                    <td>
-                                        <button 
-                                            onClick={() => props.sendToServer(winMessage)}
-                                            className="btn btn-block btn-secondary">
-                                                I won the bid of {bids.name}
-                                        </button>
-                                    </td>
-                                </tr> 
-                            );
+                                <>
+                                    <button 
+                                        key={numTricks} 
+                                        onClick={() => props.selectNumberOfTricks(numTricks)}
+                                        className="btn btn-secondary">Bid {numTricks} of something ...
+                                    </button>
+                                    <span>{worthOfBid([numTricks, "S"])} - {worthOfBid([numTricks, "NT"])} points</span>
+                                </>
+                            )
                         })
                     }
-                    </tbody>
-                </table>
+                    <BidButton bid={misereBet} selectBid={props.selectBid} worthOfLastBid={props.worthOfLastBid} />
+                </div>
             </div>
         )
     } else {
-        return null;
+        return (
+            <div className={styles.bidSelectorContainer}>
+                <div className={styles.bidSelectorButtonContainer}>
+                    {
+                        ["S", "C", "D", "H", "NT"].map(trumps => {
+                            var bid = [props.selectedNumberOfTricks, trumps];
+                            return <BidButton key={trumps} bid={bid} selectBid={props.selectBid} worthOfLastBid={props.worthOfLastBid} />
+                        })
+                    }
+                </div>
+                <button 
+                    className="btn btn-secondary" 
+                    onClick={() => props.selectNumberOfTricks(null)}>
+                        Actually, I changed my mind. I want to bid a different number.
+                </button>
+            </div>
+        )
+    }
+}
+
+class Bids extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { 
+            bid: null, 
+            selectedNumberOfTricks: null 
+        };
+    }
+
+    render() {
+        if (!this.props.showBids) {
+            return null;
+        }
+
+        if (this.props.bettingPassed == null || this.props.bettingPassed[this.props.playerID]) {
+            return null;
+        }
+
+        // Get the number of points of the previous bid
+        var worthOfLastBid = 0;
+        var lastBid = [];
+        var extraBidText = "";
+        if (this.props.bettingHistory.length > 0) {
+            lastBid = this.props.bettingHistory[this.props.bettingHistory.length - 1].bet;
+            worthOfLastBid = worthOfBid(lastBid);
+            extraBidText = "If you wanted to bid higher, you would need to beat " + betToString(lastBid) + ", which is worth " + worthOfLastBid.toString() + " points.";
+        }
+
+        var actionPreviewClass = styles.actionPreviewPlaying;
+
+        var button = null;
+        if (this.state.bid == null) {
+            if (this.props.ourTurn) {
+                button = <div className="alert alert-dark">Select a bid from the options below. {extraBidText}</div>
+            } else {
+                button = <div className="alert alert-dark">It's not your turn yet, but you can get ready by selecting a bid from the options below. {extraBidText}</div>
+            }
+        } else {
+
+
+            // Special handling of passing
+            if (this.state.bid.length == 0) {
+                if (this.props.ourTurn) {
+                    button = <button 
+                        onClick={() => this.props.playerAction({action: Actions.makeBet, payload: this.state.bid})}
+                        className="btn btn-success btn-block fadein">
+                            Yes, click here to confirm that I pass.
+                    </button>
+                } else {
+                    button = <button 
+                        className="btn btn-secondary btn-block fadein">
+                        When it's your turn, click here to pass.
+                    </button>
+                }
+            } else {
+                var bidAsText = betToString(this.state.bid);
+
+                // Disallow bids that don't have enough points
+                var worthOfThisBid = worthOfBid(this.state.bid);
+                if (worthOfThisBid <= worthOfLastBid) {
+                    button = <button 
+                        className="btn btn-danger btn-block fadein">
+                        Cannot bet {bidAsText} because it does not outbid the previous bid of {betToString(lastBid)}.
+                    </button>
+                } else {
+                    // If it's our turn, allow bids to be submitted
+                    if (this.props.ourTurn) {
+                        button = <button 
+                            onClick={() => {
+                                this.setState({bid: null, selectedNumberOfTricks: null});
+                                this.props.playerAction({action: Actions.makeBet, payload: this.state.bid});
+                            }}
+                            className="btn btn-success btn-block fadein">
+                                Yes, click here to submit a bid of {bidAsText} for {worthOfThisBid} points.
+                            </button>
+                    } else {
+                        button = <button 
+                            className="btn btn-secondary btn-block fadein">
+                                When it's your turn, click here to submit a bid of {bidAsText} for {worthOfThisBid} points.
+                            </button>
+                    }
+                }
+            }
+        }
+
+        // Render these components
+        return (
+            <div className={styles.actionPreview + actionPreviewClass}>
+                <div className={styles.actionPreviewInstructions}>
+                    {button}
+                </div>
+                <BidSelector 
+                    selectBid={(bid) => this.setState({bid: bid})}
+                    selectNumberOfTricks={(n) => this.setState({selectedNumberOfTricks: n})}
+                    bid={this.state.bid}
+                    worthOfLastBid={worthOfLastBid}
+                    selectedNumberOfTricks={this.state.selectedNumberOfTricks} />
+            </div>
+        )
     }
 }
 
@@ -60,10 +194,14 @@ function mapStateToProps(state) {
         showBids: state.game.serverState.gameState == GameState.Bidding && (state.game.trickIDAcknowledged == state.game.serverState.trickID) ,
         playerNames: state.game.playerNames,
         firstBetter: state.game.serverState.firstBetter,
+        bettingPassed: state.game.serverState.bettingPassed,
+        playerID: state.game.playerID,
+        ourTurn: state.game.serverState.turn == state.game.playerID,
+        bettingHistory: state.game.serverState.bettingHistory,
     }
 }
 
 export default connect(
     mapStateToProps,
-    {sendToServer}
+    {playerAction}
 )(Bids)

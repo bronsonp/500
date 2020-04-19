@@ -71,7 +71,7 @@ export default function Card(props) {
 
     return (
         <div 
-            onClick={() => props.onClick(props.card)}
+            onClick={() => {if (props.onClick) { props.onClick(props.card)}}}
             className={styles.card + " " + styles["card" + card.suit] + " " + props.extraStyle} >
                 <span className={styles.helper}></span>
                 <img src={card.image} />

@@ -145,7 +145,7 @@
 }
 
 /* shuffle button */
-.shuffleButton {
+button.shuffleButton {
     width: 100%;
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
@@ -153,18 +153,33 @@
 }
 
 /* bids */
-.bids table {
+.bidSelectorContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+.bidSelectorContainer button {
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
+    margin-right: auto;
+    margin-left: 0;
+    min-height: 3rem;
+}
+
+.bidSelectorButtonContainer {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+}
+.bidSelectorButtonContainer > button {
     width: 100%;
 }
-.bids th {
-    text-align: center;
+
+.bidSelectorButtonContainer span {
+    margin-left: 0.3rem;
 }
-.bids button {
-    margin: 0.66rem 0;
-    padding-top: 0.66rem;
-    padding-bottom: 0.66rem;
-    
-}
+
 
 /* how cards are rendered */
 .card {
@@ -292,7 +307,6 @@
     right: 58%;
 }
 
-
 .gameTable6Players .card.north {
     position: absolute;
     bottom: 60%;
@@ -315,7 +329,6 @@
 
 .cardZ0 {
     z-index: 1;
-
 }
 .cardZ1 {
     z-index: 2;
@@ -331,6 +344,77 @@
 }
 .cardZ5 {
     z-index: 6;
+}
+
+
+/* table bets */
+.tableBet {
+    padding: 0.3rem 0.3rem;
+    background-color: rgb(233, 228, 228);
+    border: 1px solid black;
+    border-radius: 15%;
+    vertical-align: middle;
+    box-shadow: 3px 3px 3px 0px rgba(0,0,0,0.33);
+}
+
+/* 4 players bet positioning */
+.gameTable4Players .tableBet.south {
+    position: absolute;
+    bottom: 5%;
+}
+
+.gameTable4Players .tableBet.west {
+    position: absolute;
+    left: 5%;
+    margin-bottom: 2rem;
+}
+
+.gameTable4Players .tableBet.north {
+    position: absolute;
+    top: 5%;
+}
+
+.gameTable4Players .tableBet.east {
+    position: absolute;
+    right: 5%;
+    margin-top: 2rem;
+}
+
+/* 6 players tableBet positioning */
+
+.gameTable6Players .tableBet.south {
+    position: absolute;
+    bottom: 5%;
+}
+
+.gameTable6Players .tableBet.southwest {
+    position: absolute;
+    bottom: 25%;
+    left: 5%;
+}
+
+.gameTable6Players .tableBet.northwest {
+    position: absolute;
+    top: 25%;
+    left: 5%;
+}
+
+.gameTable6Players .tableBet.north {
+    position: absolute;
+    top: 5%;
+}
+
+
+.gameTable6Players .tableBet.northeast {
+    position: absolute;
+    top: 25%;
+    right: 5%;
+}
+
+.gameTable6Players .tableBet.southeast {
+    position: absolute;
+    right: 5%;
+    bottom: 25%;
 }
 
 

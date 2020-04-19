@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from "react-redux";
 
-import { GameState, CardData } from '../../api/game'
+import { GameState, CardData, betToString } from '../../api/game'
 
 import styles from './game.module.css';
 
@@ -43,7 +43,8 @@ function GameTable(props) {
 
     // find the ordering of players starting from us and moving around the table
     var order = [];
-    for (var i = 0; i < props.playerNames.length; i++) {
+    var i;
+    for (i = 0; i < props.playerNames.length; i++) {
         order.push((i + props.playerID) % props.playerNames.length)
     }
 
@@ -64,9 +65,23 @@ function GameTable(props) {
         cards = props.trick;
         cardsPlayedBy = props.trickPlayedBy;
     }
-    if (props.gameState == GameState.Bidding) {
-        activePlayer = props.firstBetter;
+
+    // during the bidding phase, display bids instead of cards
+    var bids = [];
+    if (props.gameState == GameState.Bidding && props.bettingPassed !== null) {
+        // insert bids from each player
+        props.bettingHistory.forEach(h => {
+            bids[h.playerID] = betToString(h.bet);
+        })
+
+        // set which players have passed
+        for (i = 0; i < props.playerNames.length; i++) {
+            if (props.bettingPassed[i]) {
+                bids[i] = "Passed";
+            }
+        }
     }
+
     
     // create a message for a joker that is led in a NT game
     var messageAboutLeadingJoker = null;
@@ -136,6 +151,39 @@ function GameTable(props) {
                             return <Card card={card} key={i} extraStyle={cardStyle} />
                         })
                     }
+                    {
+                        bids.map((bid, id) => {
+                            var bidStyle = "";
+                            var tablePosition = order.indexOf(id);
+                            if (props.playerNames.length == 4) {
+                                switch (tablePosition) {
+                                    case 0: bidStyle = styles.south; break;
+                                    case 1: bidStyle = styles.west; break;
+                                    case 2: bidStyle = styles.north; break;
+                                    case 3: bidStyle = styles.east; break;
+                                }
+                            } else {
+                                switch (tablePosition) {
+                                    case 0: bidStyle = styles.south; break;
+                                    case 1: bidStyle = styles.southwest; break;
+                                    case 2: bidStyle = styles.northwest; break;
+                                    case 3: bidStyle = styles.north; break;
+                                    case 4: bidStyle = styles.northeast; break;
+                                    case 5: bidStyle = styles.southeast; break;
+                                }
+                            }
+                            // set the z index in order of cards being played
+                            bidStyle = bidStyle + " " + styles['cardZ' + i.toString()];
+
+                            // animate the last placed card
+                            if (i == props.trick.length-1) {
+                                bidStyle = bidStyle + " fadein";
+                            }
+
+                            bidStyle = bidStyle + " " + styles.tableBet;
+                            return <div key={id} className={bidStyle}>{bid}</div>
+                        })
+                    }
                 </div>
             </div>
 
@@ -164,6 +212,8 @@ function mapStateToProps(state) {
         previousTrickWonBy: state.game.serverState.previousTrickWonBy,
         notrumps_joker_suit: state.game.serverState.notrumps_joker_suit,
         trumps: state.game.serverState.trumps,
+        bettingPassed: state.game.serverState.bettingPassed,
+        bettingHistory: state.game.serverState.bettingHistory,
     }
 }
 

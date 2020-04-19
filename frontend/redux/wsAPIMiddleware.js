@@ -62,15 +62,16 @@ const wsAPIMiddleware = (store) => (next) => (action) => {
 
             break;
 
-        case 'game/playCard':
+        case 'game/playerAction':
+            // Process it locally
             next(action);
 
             // Send to server
-            store.dispatch(sendToServer({
-                action: Actions.playCard,
-                payload: action.payload.card,
-                notrumps_joker_suit: action.payload.notrumps_joker_suit,
-            }));
+            store.dispatch(sendToServer(action.payload));
+
+            // Send to server (with delay to simulate bad network)
+            //setTimeout(() => store.dispatch(sendToServer(action.payload)), 2000);
+
             break;
 
         default:

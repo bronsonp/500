@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { CardData } from '../api/game';
+import { CardData, processPlayerAction } from '../api/game';
 
 const gameSlice = createSlice({
     name: 'game',
@@ -17,7 +17,6 @@ const gameSlice = createSlice({
         allPlayersConnected: false,
         serverState: {
             numberOfCardsInHand: [],
-            yourHand: [],
             playersConnected: [],
             trumps: "",
             trick: [],
@@ -26,6 +25,7 @@ const gameSlice = createSlice({
             previousTrick: [],
             previousTrickPlayedBy: [],
             scoreboard: [],
+            bettingPassed: null,
         }
     },
     reducers: {
@@ -92,9 +92,11 @@ const gameSlice = createSlice({
         },
         addCardToPreview: (state, action) => {
             state.actionPreview.push(action.payload)
+            state.lastError = "";
         },
         removeCardFromPreview: (state, action) => {
             state.actionPreview = state.actionPreview.filter(c => c != action.payload);
+            state.lastError = "";
         },
         acknowledgePreviousTrick: (state, action) => {
             state.trickIDAcknowledged = state.serverState.trickID;
@@ -102,22 +104,31 @@ const gameSlice = createSlice({
         setError: (state, action) => {
             state.lastError = action.payload;
         },
-        playCard: (state, action) => {
+        playerAction: (state, action) => {
             // The network transmission will be handled by the wsAPIMiddleware, so we only
-            // need to locally mutate the state
+            // need to locally mutate the state.
 
+            // This will modify state.game.serverState
+            var response = processPlayerAction(state.serverState, state.playerID, action.payload);
             
-
-            // // Add it to the trick
-            // state.serverState.trick.push(action.payload.card);
-            // state.serverState.trickPlayedBy.push(state.playerID);
-
-            // // Remove it from the player's hand and preview window
-            // state.actionPreview = [];
-            // state.serverState.yourHand = state.serverState.yourHand.filter(h => h !== action.payload.card);
-
-
+            // Handle the response
+            if (response.action == "gameActionResponse") {
+                if (!response.accepted) {
+                    state.lastError = response.message;
+                }
+            }
+            
+            // Indicate that we are still waiting on the server response
             state.sendingToServer = true;
+
+            // Clear current state
+            state.actionPreview = [];
+
+            // update the scoreboard
+            state.teamScores = (state.serverState.playerNames.length == 4) ? [0,0] : [0,0,0];
+            state.serverState.scoreboard.forEach(entry => {
+                entry.teamScores.forEach((score, teamID) => state.teamScores[teamID] += score);
+            })
         }
     }
 })
@@ -132,7 +143,7 @@ export const {
     removeCardFromPreview,
     acknowledgePreviousTrick,
     setError,
-    playCard,
+    playerAction,
 } = gameSlice.actions
   
 export default gameSlice.reducer

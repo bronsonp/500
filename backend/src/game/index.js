@@ -10,7 +10,7 @@ const GameState = {
 
 const Actions = {
     "shuffle": "shuffle",
-    "winBet": "winBet",
+    "makeBet": "makeBet",
     "discardKitty": "discardKitty",
     "playCard": "playCard"
 }
@@ -97,35 +97,45 @@ for (let [numPlayers, data] of Object.entries(CardData)) {
         ...data.all_suits
     };
 
-    // Define the list of bids
-    data.all_bids = [{
-        tricksWagered: 0,
-        trumps: 'NT',
-        name: 'Misère',
-        worth: MISERE_SCORE
-    }];
-    for (var numtricks = 6; numtricks <= 10; numtricks++) {
-        Object.keys(data.all_trumps).forEach(t => {
-            data.all_bids.push({
-                tricksWagered: numtricks,
-                trumps: t,
-                name: numtricks + " " + data.all_trumps[t].name,
-                worth: 100*(numtricks-6) + data.all_trumps[t].worth + 40
-            })
-        })
-    }
-    data.all_bids.sort((a, b) => {
-        if (a.worth < b.worth) { 
-            return -1;
-        } else if (a.worth > b.worth) { 
-            return 1;
-        } else {
-            return 0;
-        }
-    })
-
     // Set it back into the global CardData
     CardData[numPlayers] = data;
+}
+
+// Calculate the worth of a given bid
+function worthOfBid(bet) {
+    // hardcode which carddata to use since they are all the same
+    var cd = CardData['6'];
+
+    // Parse bet
+    if (bet.length != 2) {
+        throw Error("Invalid bet.");
+    }
+    var tricksWagered = parseInt(bet[0]);
+    var trumps = bet[1];
+
+    // sanity check
+    if (! cd.all_trumps.hasOwnProperty(trumps)) {
+        throw Error("Invalid trumps suit.");
+    }
+
+    // special case for Misere
+    if (tricksWagered == 0 && trumps == "NT") {
+        return MISERE_SCORE;
+    } else if (tricksWagered >= 6 && tricksWagered <= 10) {
+        // calculate worth 
+        return 100*(tricksWagered-6) + cd.all_trumps[trumps].worth + 40;
+    } else {
+        throw Error("Invalid bet.");
+    }
+}
+
+// Convert a bid to a string
+function betToString(bet) {
+    if (bet[0] == 0 && bet[1] == "NT") {
+        return "Misère";
+    } else {
+        return bet[0].toString() + " " + CardData['6'].all_trumps[bet[1]].name
+    }
 }
 
 // Create a new game, returning an object representing the game state
@@ -140,7 +150,6 @@ function startGame(playerNames) {
     return {
         // Set the player names
         playerNames: playerNames,
-        numberOfPlayers: playerNames.length,
 
         // Generate a game ID and timestamps
         gameID: uuid.v4(),
@@ -153,6 +162,17 @@ function startGame(playerNames) {
         
         // Players can vote to discard and redraw (e.g. if something goes wrong)
         playersVoteToRedrawTrick: playerNames.map(n => false),
+
+        // During the bidding phase, keep track of who has passed
+        bettingPassed: playerNames.map(n => false),
+
+        // During the betting phase, list the bet that have been made
+        // This is an array of objects of the form:
+        // [{
+        //     playerID: __,
+        //     bet: __,
+        // }]
+        bettingHistory: [],
 
         // The current trick to far
         trick: [],
@@ -229,16 +249,11 @@ function serialiseGame(game) {
     ];
     mainFields.forEach(f => serialisation[f] = game[f]);
 
-    // These fields are not stored because they are computed
-    var computedFields = [
-        "numberOfPlayers",
-    ]
-
     // Other fields are stored as a JSON string.
     // This is done because DynamoDB can't store empty strings.
     var document = {};
     Object.keys(game).forEach(key => {
-        if (-1 == mainFields.indexOf(key) && -1 == computedFields.indexOf(key)) {
+        if (-1 == mainFields.indexOf(key)) {
             document[key] = game[key];
         }
     })
@@ -261,18 +276,20 @@ function deserialiseGame(serialisation) {
     // Set the keys stored as string
     Object.assign(game, JSON.parse(serialisation.document));
 
-    // Set calculated fields
-    game.numberOfPlayers = game.playerNames.length;
-
     // Done
     return game;
+}
+
+// Return the CardData structure for the current game
+function getCardData(game) {
+    return CardData[game.playerNames.length.toString()];
 }
 
 // Shuffle the cards (abandoning any round in progress, if any).
 // Mutates the game object. 
 // There is no return value.
 function shuffleCards(game) {
-    var cards = CardData[game.numberOfPlayers].all_cards.slice();
+    var cards = getCardData(game).all_cards.slice();
     
     // shuffle the cards by the Fisher-Yates algorithm
     for (var i = cards.length - 1; i >= 1; i--) {
@@ -299,7 +316,7 @@ function shuffleCards(game) {
     game.trumps = "";
     game.tricksWagered = -1;
     game.playerWinningBid = -1;
-    game.turn = -1;
+    game.turn = game.firstBetter;
     game.playersVoteToRedrawTrick = game.playerNames.map(n => false);
 }
 
@@ -317,7 +334,7 @@ function getSuit(game, card) {
     
     // Special case for the left bower
     if (game.trumps != "NT") {
-        if (card == CardData[game.numberOfPlayers.toString()].all_suits[game.trumps].left_bower) {
+        if (card == getCardData(game).all_suits[game.trumps].left_bower) {
             return game.trumps;
         }
     }
@@ -374,7 +391,7 @@ function isMisere(game) {
 
 // return the ID of the teammate of the player who bid misere
 function getMisereSkippedPlayer(game) {
-    if (4 == game.numberOfPlayers) {
+    if (4 == game.playerNames.length) {
         switch (game.playerWinningBid) {
             case 0: return 2;
             case 1: return 3;
@@ -400,7 +417,7 @@ function getMisereSkippedPlayer(game) {
 //   action: an object of two fields: action and payload.
 //   Allowable actions are:
 //   { action: Actions.shuffle } --> shuffle the deck and distribute cards to players.
-//   { action: Actions.winBet, payload: [8, "H"] } --> notify that this player wins the betting. Bet format is number of tricks then trump suit. For "misere", bet format is [0, "NT"]
+//   { action: Actions.makeBet, payload: [8, "H"] } --> during bidding phase, make a bet. Bet format is number of tricks then trump suit. To pass, bet format is an empty array []. For "misere", bet format is [0, "NT"]
 //   { action: Actions.discardKitty, payload: [_, _, _] } --> discard 3 cards from the hand.
 //   { action: Actions.playCard, payload: "DJ" } --> play the given card. Note: if the Joker is led in no-trumps, an extra field is added: "notrumps_joker_suit" giving the suit of the joker
 //
@@ -434,6 +451,12 @@ function processPlayerAction(game, playerID, action) {
             case GameState.BeforeDealing: 
                 // Accept the shuffle action once all players are connected
                 if (action.action == Actions.shuffle) {
+                    // If we are running on the client, do nothing
+                    if (game.hasOwnProperty('numberOfCardsInHand')) {
+                        response.accepted = true;
+                        return response;
+                    }
+
                     if (game.websockets.every(id => id != "-")) {
                         response.accepted = true;
                         shuffleCards(game);
@@ -451,45 +474,110 @@ function processPlayerAction(game, playerID, action) {
                 }
             
             case GameState.Bidding:
-                // Accept the winBet action
-                if (action.action == Actions.winBet) {
-                    // Check input data
+                // Accept the makeBet action 
+                if (action.action == Actions.makeBet) {
 
-                    // Default rejection
-                    response.accepted = false;
-                    response.message = "Invalid bet.";
-
-                    // Parse bet
-                    var tricksWagered = parseInt(action.payload[0]);
-                    var trumps = action.payload[1];
-
-                    // Special case for misere
-                    if (tricksWagered == 0 && trumps == "NT") {
-                        response.accepted = true;
-                    } else if (tricksWagered >= 6 && tricksWagered <= 10 && CardData[game.numberOfPlayers].all_trumps.hasOwnProperty(trumps)) {
+                    // Reject if it's not our turn
+                    if (playerID !== game.turn) {
+                        response.accepted = false;
+                        response.message = "Wait your turn.";
+                        return response;
+                    }
+                    
+                    // Did the player pass?
+                    if (action.payload.length == 0) {
+                        // yes, it is a pass.
+                        game.bettingPassed[playerID] = true;
                         response.accepted = true;
                     }
 
-                    // Assign the kitty to the player who won the bid
-                    if (response.accepted) {
-                        game.tricksWagered = tricksWagered;
-                        game.trumps = trumps;
-                        game.playerWinningBid = playerID;
-                        game.hands[game.playerWinningBid] = game.hands[game.playerWinningBid].concat(game.kitty);
-                        game.kitty = [];
-                        game.gameState = GameState.DiscardingKitty;
-                        game.turn = playerID;
-                        response.message = "";
-                        response.log[0].payload = action.payload;
+                    // Take the bet
+                    else if (action.payload.length == 2) {
+                        // will throw an error if this is an invalid bet
+                        var worth = worthOfBid(action.payload);
+
+                        // check if this bid is legal
+                        if (game.bettingHistory.length > 0) {
+                            var lastBet = game.bettingHistory[game.bettingHistory.length - 1];
+                            if (worth <= worthOfBid(lastBet.bet)) {
+                                response.accepted = false;
+                                response.message = "Bet must be higher than the previous bet.";
+                                return response;
+                            }
+                        }
+
+                        // store the bid
+                        game.bettingHistory.push({
+                            playerID: playerID,
+                            bet: [action.payload[0], action.payload[1]],
+                        })
+                        response.accepted = true;
+                    }
+
+                    // Else it's an invalid format
+                    else {
+                        response.accepted = false;
+                        response.message = "Expected a payload of form [tricksWagered, trumps]";
                         return response;
                     }
 
+                    // Calculate how many players are not passed
+                    var playersStillBetting = 0;
+                    for (i = 0; i < game.playerNames.length; i++) {
+                        if (!game.bettingPassed[i]) {
+                            playersStillBetting += 1;
+                        }
+                    }
+                    
+                    // Is betting over?
+                    
+                    // If no-one has bet, betting is over when everyone passes. In that case, redraw.
+                    if (game.bettingHistory.length == 0 && playersStillBetting == 0) {
+                        game.gameState = GameState.BeforeDealing;
+                        game.bettingPassed = game.playerNames.map(n => false);
+                        game.hands = [];
+                        game.kitty = [];
+                        game.turn = -1;
+                        response.accepted = true;
+                        return response;
+                    }
+                    
+                    // If there have been bets, betting is over when everyone except one player passes.
+                    if (game.bettingHistory.length > 0 && playersStillBetting == 1) {
+                        // Find the winner of the bet
+                        var lastBet = game.bettingHistory[game.bettingHistory.length - 1];
+                        
+                        // Assign the kitty to the player who won the bid
+                        game.tricksWagered = lastBet.bet[0];
+                        game.trumps = lastBet.bet[1];
+                        game.playerWinningBid = lastBet.playerID;
+                        game.gameState = GameState.DiscardingKitty;
+                        game.turn = lastBet.playerID;
+                        // Only on the server can we allocate the kitty, since this information is not visible at the client
+                        if (!game.hasOwnProperty("numberOfCardsInHand")) {
+                            game.hands[game.playerWinningBid] = game.hands[game.playerWinningBid].concat(game.kitty);
+                            game.kitty = [];
+                        }
+                        response.accepted = true;
+                        response.message = "";
+                        response.log[0].payload = {action: "winBet", payload: lastBet};
+                        return response;
+                    }
+
+                    // Move to the next player who hasn't passed
+                    var i;
+                    for (i = 0; i < game.playerNames.length; i++) {
+                        game.turn = (game.turn + 1) % game.playerNames.length;
+                        if (!game.bettingPassed[game.turn]) {
+                            break;
+                        }
+                    }
                     return response;
 
                 } else {
                     // All other actions are not acceptable
                     response.accepted = false;
-                    response.message = "Talk to your friends and decide who wins the bid first.";
+                    response.message = "You must make bets first.";
                     return response;
                 }
 
@@ -536,7 +624,7 @@ function processPlayerAction(game, playerID, action) {
                     if (isCardLegal(game, playerID, card)) {
                         // Special case for No Trumps when the joker is led
                         if (card == "Joker" && game.trumps == "NT" && game.trick.length == 0) {
-                            if (action.hasOwnProperty("notrumps_joker_suit") && CardData[game.numberOfPlayers].all_suits.hasOwnProperty(action.notrumps_joker_suit)) {
+                            if (action.hasOwnProperty("notrumps_joker_suit") && getCardData(game).all_suits.hasOwnProperty(action.notrumps_joker_suit)) {
                                 game.notrumps_joker_suit = action.notrumps_joker_suit;
                             } else {
                                 response.accepted = false;
@@ -556,7 +644,7 @@ function processPlayerAction(game, playerID, action) {
 
                         if (!checkForEndOfTrick(game)) {
                             // Trick is not finished. Move to the next player.
-                            game.turn = (game.turn + 1) % game.numberOfPlayers;
+                            game.turn = (game.turn + 1) % game.playerNames.length;
 
                             // Special case for misere
                             if (isMisere(game)) {
@@ -566,7 +654,7 @@ function processPlayerAction(game, playerID, action) {
                                     game.trickPlayedBy.push(game.turn);
 
                                     // Move to the next player
-                                    game.turn = (game.turn + 1) % game.numberOfPlayers;
+                                    game.turn = (game.turn + 1) % game.playerNames.length;
                                 }
 
                                 // Now the trick might be finished
@@ -598,7 +686,7 @@ function processPlayerAction(game, playerID, action) {
 // Check for whether a trick is ended
 function checkForEndOfTrick(game) {
     // Is the trick finished?
-    if (game.trick.length == game.numberOfPlayers) {
+    if (game.trick.length == game.playerNames.length) {
         // Trick is done. Find the winner
 
         var winningCardID = calcTrickWinner(game);
@@ -622,12 +710,25 @@ function checkForEndOfTrick(game) {
         game.trickPlayedBy = [];
 
         // Is the round finished?
-        if (game.hands[game.playerWinningBid].length == 0) {
+        // Look at any player's hand (except the player being skipped by misere).
+        // On the server we can use the player who won the bid; on the client we must
+        // look at our own hand.
+        var a_hand = game.hands[game.playerWinningBid];
+        if (a_hand == null) {
+            // on the client, we don't have access to other people's hands. Search for a hand that we can see. 
+            for (var i = 0; i < game.playerNames.length; i++) {
+                if (game.hands[i] !== null) {
+                    a_hand = game.hands[i];
+                    break;
+                }
+            }
+        }
+        if (a_hand.length == 0) {
             // All tricks have been played.
 
             // Add up the total points for winning tricks
-            var teamScores = (game.numberOfPlayers == 4) ? [0,0] : [0,0,0];
-            var teamWinningBid = CardData[game.numberOfPlayers].teams[game.playerWinningBid];
+            var teamScores = (game.playerNames.length == 4) ? [0,0] : [0,0,0];
+            var teamWinningBid = getCardData(game).teams[game.playerWinningBid];
             // Special case for misere
             if (game.tricksWagered == 0 && game.trumps == "NT") {
                 // Did the player bidding misere win any tricks?
@@ -642,7 +743,7 @@ function checkForEndOfTrick(game) {
                 // for normal bids, get 10 points per trick (except for the team who wagered)
                 var tricksWonByWageringTeam = 0;
                 game.tricksWon.forEach((tricks, playerID) => {
-                    var teamID = CardData[game.numberOfPlayers].teams[playerID];
+                    var teamID = getCardData(game).teams[playerID];
                     if (teamID != teamWinningBid) {
                         teamScores[teamID] += 10*tricks;
                     } else {
@@ -651,7 +752,7 @@ function checkForEndOfTrick(game) {
                 })
 
                 // How many points were at stake?
-                var pointsAtStake = 100*(game.tricksWagered-6) + CardData[game.numberOfPlayers].all_trumps[game.trumps].worth + 40
+                var pointsAtStake = 100*(game.tricksWagered-6) + getCardData(game).all_trumps[game.trumps].worth + 40
 
                 // Did the players succeed?
                 if (tricksWonByWageringTeam >= game.tricksWagered) {
@@ -667,7 +768,7 @@ function checkForEndOfTrick(game) {
             game.tricksWon = game.tricksWon.map(x => 0);
 
             // The next player should bid first in the next round
-            game.firstBetter = (game.firstBetter + 1) % game.numberOfPlayers;
+            game.firstBetter = (game.firstBetter + 1) % game.playerNames.length;
             
             // add to the scoreboard
             game.scoreboard.push({
@@ -691,7 +792,7 @@ function checkForEndOfTrick(game) {
 // Calculate the winner of the current trick
 function calcTrickWinner(game) {
     // Sanity check that all cards exist 
-    var card_order = CardData[game.numberOfPlayers].all_trumps[game.trumps].card_order;
+    var card_order = getCardData(game).all_trumps[game.trumps].card_order;
     game.trick.forEach((c,i) => {
         if (-1 == card_order.indexOf(c)) {
             // accept "#SKIP" tokens for misere games but reject other cards
@@ -699,7 +800,7 @@ function calcTrickWinner(game) {
                     && getMisereSkippedPlayer(game) == game.trickPlayedBy[i] 
                     && c == "#SKIP")) 
             {
-                throw "Invalid card `" + c + "` was presented in a trick.";
+                throw Error("Invalid card `" + c + "` was presented in a trick.");
             }
         }
     })
@@ -750,7 +851,7 @@ function calcTrickWinner(game) {
 function getGameInfoForPlayer(game, playerID) {
     // copy player's hands and replace other players with null 
     var hands = game.hands.slice();
-    for (var i = 0; i < game.numberOfPlayers; i++) {
+    for (var i = 0; i < game.playerNames.length; i++) {
         if (i !== playerID) {
             hands[i] = null;
         }
@@ -776,6 +877,8 @@ function getGameInfoForPlayer(game, playerID) {
         "gameState": game.gameState,
         "turn": game.turn,
         "firstBetter": game.firstBetter,
+        "bettingPassed": game.bettingPassed,
+        "bettingHistory": game.bettingHistory,
 
         // information about other players has been scrubbed out
         "hands": hands,
@@ -797,6 +900,8 @@ module.exports = {
     isCardLegal,
     calcTrickWinner,
     processPlayerAction,
+    worthOfBid,
+    betToString,
 
     // enum constants 
     Actions,

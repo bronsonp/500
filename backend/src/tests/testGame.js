@@ -74,12 +74,47 @@ function test_gameplay() {
     g.websockets = ["1", "2", "3", "4"];
 
     // shuffle the cards
+    g.firstBetter = 0;
     r = Game.processPlayerAction(g, 3, {action: Game.Actions.shuffle});
     assert(r.accepted, "Should be able to shuffle");
 
-    // Decide who wins the bidding
-    r = Game.processPlayerAction(g, 0, {action: Game.Actions.winBet, payload: [6, "H"]});
+    // reject bids out of order
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.makeBet, payload: []});
+    assert(!r.accepted, "Cannot bet out of order");
+
+    // Check if everyone passes
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: []}); // pass
+    assert(r.accepted);
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.makeBet, payload: []}); // pass
+    assert(r.accepted);
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.makeBet, payload: []}); // pass
+    assert(r.accepted);
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.makeBet, payload: []}); // pass
+    assert(r.accepted);
+    assert(g.gameState == Game.GameState.BeforeDealing);
+
+    // shuffle the cards
+    g.firstBetter = 0;
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.shuffle});
+    assert(r.accepted, "Should be able to shuffle");
+
+    // let player 0 win the bidding
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: [5, "S"]}); assert(!r.accepted);
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: [7, "xx"]}); assert(!r.accepted);
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: [6, "S"]}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.makeBet, payload: [6, "C"]}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.makeBet, payload: [6, "D"]}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.makeBet, payload: [6, "H"]}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: [6, "H"]}); 
+    assert(!r.accepted, "Can't bet lower.");
+    r = Game.processPlayerAction(g, 0, {action: Game.Actions.makeBet, payload: [7, "H"]}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 1, {action: Game.Actions.makeBet, payload: []}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 2, {action: Game.Actions.makeBet, payload: []}); assert(r.accepted);
+    r = Game.processPlayerAction(g, 3, {action: Game.Actions.makeBet, payload: []}); 
     assert(r.accepted, "Should be able to win betting");
+    assert(g.gameState == Game.GameState.DiscardingKitty, "Winner gets the kitty");
+    assert(g.hands[0].length == 13, "Winner gets the kitty");
+    assert(g.turn == 0, "Winner has their turn to play first");
 
     // Check no one else can play now
     r = Game.processPlayerAction(g, 1, {action: Game.Actions.playCard, payload: g.hands[1][0]});    
@@ -126,6 +161,8 @@ function test_gameplay() {
     ];
     g.turn = 2;
     g.playerWinningBid = 1;
+    g.tricksWagered = 6;
+    g.trumps = "H";
     s = Game.serialiseGame(g);
 
     // Play a hand
