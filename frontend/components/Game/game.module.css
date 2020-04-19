@@ -176,6 +176,18 @@ button.shuffleButton {
     width: 100%;
 }
 
+.bidSelectorButtonContainer > button.red_no_hover {
+    color: #dc3545;
+    border-color: #dc3545;
+    background-color: white;
+}
+.bidSelectorButtonContainer > button.red_no_hover:hover {
+    color: #dc3545;
+    border-color: #dc3545;
+    background-color: white;
+}
+
+
 .bidSelectorButtonContainer span {
     margin-left: 0.3rem;
 }

@@ -8,7 +8,7 @@ import { playerAction } from '../../redux/game'
 function BidButton(props) {
     var bidName = betToString(props.bid);
     var worth = worthOfBid(props.bid);
-    var btnClass = (worth <= props.worthOfLastBid) ? "btn btn-outline-danger" : "btn btn-secondary";
+    var btnClass = (worth <= props.worthOfLastBid) ? "btn " + styles.red_no_hover : "btn btn-secondary";
     return (
         <>
             <button
