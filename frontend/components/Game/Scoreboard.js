@@ -2,20 +2,7 @@ import { connect } from "react-redux";
 
 import styles from './game.module.css';
 
-import Card from './Card'
-import { CardData } from '../../api/game';
-
-function wagerToString(tricksWagered, trumps) {
-    // find this in the CardData
-    // hardcode which entry to look at
-    for (var bid of CardData['6'].all_bids) {
-        if (bid.tricksWagered == tricksWagered && bid.trumps == trumps) {
-            return bid.name;
-        }
-    }
-    return tricksWagered.toString() + trumps;
-}
-
+import { CardData, betToString } from '../../api/game';
 
 function Scoreboard(props) {
     var historyOfTricks = null;
@@ -34,7 +21,7 @@ function Scoreboard(props) {
                         return (
                             <div className={styles.historyOfTricks}>
                                 <h3><span className={styles.historyIcon}>{ isWin ? "👌 " : "❌ " }</span>
-                                Round {round+1}: {props.playerNames[entry.playerWinningBid]} wagered {wagerToString(entry.tricksWagered, entry.trumps)}
+                                Round {round+1}: {props.playerNames[entry.playerWinningBid]} wagered {betToString([entry.tricksWagered, entry.trumps])}
                                 </h3>
                                 
                                 <ul>
