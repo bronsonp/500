@@ -108,7 +108,7 @@ class Bids extends React.Component {
         // Get the number of points of the previous bid
         var worthOfLastBid = 0;
         var lastBid = [];
-        var extraBidText = "";
+        var extraBidText = " (Scroll down to see the cards that you have been dealt.)";
         if (this.props.bettingHistory.length > 0) {
             lastBid = this.props.bettingHistory[this.props.bettingHistory.length - 1].bet;
             worthOfLastBid = worthOfBid(lastBid);
