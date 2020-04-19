@@ -28,7 +28,7 @@ function GameStateHeading(props) {
     if (props.gameState == GameState.Bidding) {
         return (
             <>
-                <h1 className={styles.gameStateHeading}>Bidding</h1>
+                <h1 className={styles.gameStateHeading}>Bidding: {props.playerNames[props.turn]}'s turn</h1>
             </>
         );
     }
