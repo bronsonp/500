@@ -64,7 +64,7 @@ function ActionPreview(props) {
 
     // Discarding kitty phase of the game
     if (props.serverState.gameState == GameState.DiscardingKitty && isOurTurn) {
-        actionPreviewClass = styles.actionPreviewDiscarding;
+        actionPreviewClass = " " + styles.actionPreviewDiscarding;
         if (props.actionPreview.length != 3) {
             instructions = <div className="alert alert-dark">Select 3 cards from your hand to discard.</div>
         } else {

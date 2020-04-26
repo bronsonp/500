@@ -16,6 +16,7 @@ function PlayerAtTable(props) {
     var tricksWon = "";
     if (typeof props.tricksWon !== 'undefined') {
         if (props.tricksWon > 0) {
+            numCards = numCards + ", ";
             tricksWon = props.tricksWon.toString() + ((props.tricksWon==1) ? " trick" : " tricks");
         }
     }

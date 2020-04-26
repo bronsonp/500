@@ -27,6 +27,12 @@ div.TopLevelFooter {
     }
 }
 
+@media screen and (max-width: 800px) {
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
 .fadein {
     animation: showFade ease 0.5s;
 }
